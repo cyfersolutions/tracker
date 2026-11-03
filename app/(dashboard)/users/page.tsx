@@ -8,7 +8,9 @@ import { DeleteUserButton } from "@/components/users/DeleteUserButton";
 export default async function UsersPage() {
   const currentUser = await requirePermission("users:view");
   await connectToDatabase();
-  const internalRoles = await Role.find({ type: "internal" }).select("_id").lean().exec();
+  const internalRoles = await Role.find({
+    $or: [{ type: "internal" }, { type: { $exists: false } }],
+  }).select("_id").lean().exec();
   const users = await User.find({ role: { $in: internalRoles.map((role) => role._id) } })
     .select("-password")
     .populate("role", "name")

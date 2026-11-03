@@ -8,6 +8,7 @@ import { useAppGuard } from "@/context/AppGuard";
 export function DashboardNav() {
   const { data: session } = useSession();
   const { can } = useAppGuard();
+  const isSuperAdmin = session?.user?.isSuperAdmin === true;
   const pathname = usePathname();
 
   function navLink(href: string, label: string) {
@@ -32,6 +33,7 @@ export function DashboardNav() {
         {can("roles:view") && navLink("/roles", "Roles")}
         {can("users:view") && navLink("/clients", "Clients")}
         {can("users:view") && navLink("/users", "Users")}
+        {isSuperAdmin && navLink("/settings", "Settings")}
       </nav>
       <div className="sidebar-user">
         <div className="user-avatar">{session?.user?.name?.slice(0, 1) ?? "U"}</div>

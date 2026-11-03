@@ -86,9 +86,23 @@ export const PUT = withAuth("leads:edit", async (request, context, user) => {
       status: leadData.status,
     };
     if (assignedTo) {
-      const assignee = await User.findOne({ _id: assignedTo, isActive: true }).select("_id");
+      const assignee = await User.findOne({ _id: assignedTo, isActive: true })
+        .populate("role", "type")
+        .select("_id role")
+        .lean();
       if (!assignee) {
         return NextResponse.json({ error: "Assignee not found or inactive." }, { status: 400 });
+      }
+      if (
+        !assignee.role ||
+        typeof assignee.role === "object" &&
+        "type" in assignee.role &&
+        assignee.role.type === "client"
+      ) {
+        return NextResponse.json(
+          { error: "Leads can only be assigned to internal users." },
+          { status: 400 },
+        );
       }
     }
     const existing = await Lead.findById(id).select("status basePrice finalPrice topUps videoUrl");

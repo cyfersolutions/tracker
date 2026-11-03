@@ -25,7 +25,7 @@ export const GET = withAuth("users:view", async (request, context) => {
     const user = await User.findById(id).select("-password").lean();
     if (!user) return NextResponse.json({ error: "User not found." }, { status: 404 });
     const role = await Role.findById(user.role).select("type").lean();
-    if (!role || role.type !== type) {
+    if (!role || (role.type !== type && !(type === "internal" && !role.type))) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
     return NextResponse.json(user);
@@ -54,7 +54,7 @@ export const PUT = withAuth("users:edit", async (request, context) => {
     const target = await User.findById(id);
     if (!target) return NextResponse.json({ error: "User not found." }, { status: 404 });
     const targetRole = await Role.findById(target.role).select("type");
-    if (!targetRole || targetRole.type !== type) {
+    if (!targetRole || (targetRole.type !== type && !(type === "internal" && !targetRole.type))) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
     if (target.isSuperAdmin && (!parsed.data.isActive || parsed.data.roleId !== String(target.role))) {
@@ -65,7 +65,7 @@ export const PUT = withAuth("users:edit", async (request, context) => {
     }
 
     const role = await Role.findById(parsed.data.roleId).select("_id type");
-    if (!role || role.type !== type) {
+    if (!role || (role.type !== type && !(type === "internal" && !role.type))) {
       return NextResponse.json({ error: "Choose a role for this account type." }, { status: 400 });
     }
     target.name = parsed.data.name;

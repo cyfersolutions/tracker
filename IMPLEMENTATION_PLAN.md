@@ -153,7 +153,7 @@ This plan turns the requirements in [CMS_PRD.md](./CMS_PRD.md) into an ordered, 
 ## Requirement traceability checklist
 
 - [ ] F-01–F-05: Authentication, inactive account rejection, session lifetime, and logout
-- [ ] F-10–F-16: Lead list/detail/CRUD, CSV export, assignment, and roof-size units
+- [ ] F-10–F-16: Lead list/detail/CRUD, CSV export, assignment to internal users only, and roof-size units
 - [ ] Lead pricing: $50 USD default base price, auditable additive top-ups for internal editors, computed final price, and permanent top-up lock on close
 - [ ] Lead validation: required name, phone, address/state, roof-size, voice recording, and assignee fields; optional email; E.164 phone number; editable base price while open; and locked price once closed
 - [ ] F-20–F-23: Role list/CRUD, permission assignment, and deletion safeguards

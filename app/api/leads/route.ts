@@ -14,6 +14,7 @@ import {
   readLeadSubmission,
   removeUploadedLeadVideo,
 } from "@/lib/server/lead-video";
+import { getDefaultLeadPrice } from "@/lib/settings";
 
 export const runtime = "nodejs";
 
@@ -85,6 +86,7 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
       submittedBody !== null &&
       !Array.isArray(submittedBody) &&
       !canAssign &&
+      user.role.type !== "client" &&
       (!("assignedTo" in submittedBody) ||
         submittedBody.assignedTo === null ||
         submittedBody.assignedTo === "")
@@ -112,6 +114,13 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
 
     await connectToDatabase();
     const { assignedTo, ...leadData } = parsed.data;
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      !("basePrice" in body)
+    ) {
+      leadData.basePrice = await getDefaultLeadPrice();
+    }
     if (assignedTo && !canAssign) {
       return NextResponse.json(
         { error: "The leads:edit permission is required to assign a lead." },
@@ -119,9 +128,23 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
       );
     }
     if (assignedTo) {
-      const assignee = await User.findOne({ _id: assignedTo, isActive: true }).select("_id");
+      const assignee = await User.findOne({ _id: assignedTo, isActive: true })
+        .populate("role", "type")
+        .select("_id role")
+        .lean();
       if (!assignee) {
         return NextResponse.json({ error: "Assignee not found or inactive." }, { status: 400 });
+      }
+      if (
+        !assignee.role ||
+        typeof assignee.role === "object" &&
+        "type" in assignee.role &&
+        assignee.role.type === "client"
+      ) {
+        return NextResponse.json(
+          { error: "Leads can only be assigned to internal users." },
+          { status: 400 },
+        );
       }
     }
 

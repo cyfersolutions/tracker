@@ -89,7 +89,7 @@ export function LeadTopUpForm({
       {error && <p className="form-error" role="alert">{error}</p>}
       {updatedPrice !== null ? (
         <p className="muted" role="status" aria-live="polite">
-          Top-up added. New final price: {formatUsd(updatedPrice)}.
+          Top-up added. New price: {formatUsd(updatedPrice)}.
         </p>
       ) : null}
       {success && !canSeeFinalPrice && (

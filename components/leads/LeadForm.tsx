@@ -6,6 +6,7 @@ import { LEAD_STATUSES, type LeadStatus } from "@/lib/permissions";
 import { useAppGuard } from "@/context/AppGuard";
 import { fromSquareFeet, toSquareFeet } from "@/lib/roof-size";
 import { formatUsd } from "@/lib/lead-pricing";
+import { StyledSelect } from "@/components/ui/StyledSelect";
 
 type LeadValues = {
   _id?: string;
@@ -65,9 +66,11 @@ const emptyLead: LeadValues = {
 export function LeadForm({
   initial,
   canManagePrice,
+  defaultLeadPrice = 50,
 }: {
   initial?: LeadValues;
   canManagePrice: boolean;
+  defaultLeadPrice?: number;
 }) {
   const router = useRouter();
   const { can } = useAppGuard();
@@ -78,10 +81,10 @@ export function LeadForm({
           ...emptyLead,
           ...initial,
           address: { ...emptyLead.address, ...initial.address },
-          basePrice: initial.basePrice ?? 50,
+          basePrice: initial.basePrice ?? defaultLeadPrice,
           topUps: initial.topUps ?? [],
         }
-      : emptyLead,
+      : { ...emptyLead, basePrice: defaultLeadPrice },
   );
   const [unit, setUnit] = useState<"sqft" | "sqm">("sqft");
   const [assignees, setAssignees] = useState<Assignee[]>([]);
@@ -193,13 +196,12 @@ export function LeadForm({
           )}
         </label>
         <label>Status
-          <select
+          <StyledSelect
             value={values.status}
-            onChange={(e) => setField("status", e.target.value as LeadStatus)}
+            onChange={(value) => setField("status", value as LeadStatus)}
             disabled={initial?.status === "CLOSED"}
-          >
-            {LEAD_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-          </select>
+            options={LEAD_STATUSES.map((status) => ({ value: status, label: status }))}
+          />
         </label>
         <label className="span-two">Street address<input value={values.address.street} onChange={(e) => updateAddress("street", e.target.value)} required /></label>
         <label>City<input value={values.address.city} onChange={(e) => updateAddress("city", e.target.value)} required /></label>
@@ -209,9 +211,12 @@ export function LeadForm({
         <label>Roof size
           <span className="input-with-select">
             <input type="number" min="0" step="any" value={Number.isFinite(displayRoofSize) ? Number(displayRoofSize.toFixed(2)) : ""} onChange={(e) => setField("roofSize", toSquareFeet(Number(e.target.value), unit))} required />
-            <select aria-label="Roof size unit" value={unit} onChange={(e) => setUnit(e.target.value as "sqft" | "sqm")}>
-              <option value="sqft">sq ft</option><option value="sqm">sq m</option>
-            </select>
+            <StyledSelect
+              ariaLabel="Roof size unit"
+              value={unit}
+              onChange={(value) => setUnit(value as "sqft" | "sqm")}
+              options={[{ value: "sqft", label: "sq ft" }, { value: "sqm", label: "sq m" }]}
+            />
           </span>
         </label>
         {canManagePrice && <label>Starting price (USD)
@@ -227,16 +232,21 @@ export function LeadForm({
           />
           {initial?._id && (
             <span className="table-subtext">
-              Final price after this update: {formatUsd(currentFinalPrice)}.
+              price after this update: {formatUsd(currentFinalPrice)}.
               {initial.status === "CLOSED" ? " Price is locked because this lead is closed." : ""}
             </span>
           )}
         </label>}
-        {canAssign && <label>Assigned to
-          <select value={assignedId} onChange={(e) => setField("assignedTo", e.target.value || null)} required>
-            <option value="">Unassigned</option>
-            {assignees.map((user) => <option key={user._id} value={user._id}>{user.name} ({user.email})</option>)}
-          </select>
+        {canAssign && <label>Call Transferred To
+          <StyledSelect
+            value={assignedId}
+            onChange={(value) => setField("assignedTo", value || null)}
+            required
+            options={[
+              { value: "", label: "Select an internal user" },
+              ...assignees.map((user) => ({ value: user._id, label: `${user.name} (${user.email})` })),
+            ]}
+          />
         </label>}
         <label className="span-two">Notes<textarea rows={4} maxLength={10000} value={values.notes} onChange={(e) => setField("notes", e.target.value)} /></label>
       </div>

@@ -41,7 +41,7 @@ export const GET = withAuth("leads:export", async (request: NextRequest, _contex
     const headers = [
       "Name", "Email", "Phone", "Video", "Street", "City", "State", "Country",
       "Postal code", "Roof size (sq ft)", "Status",
-      ...(canExportPrices ? ["Base price (USD)", "Final price (USD)"] : []),
+      ...(canExportPrices ? ["Base price (USD)", "price (USD)"] : []),
       "Assigned to", "Created at",
     ];
     const rows = [

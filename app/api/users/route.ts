@@ -17,7 +17,9 @@ export const GET = withAuth("users:view", async (request) => {
     const type = requestedRoleType(request);
     if (!type) return NextResponse.json({ error: "Invalid user type." }, { status: 400 });
     await connectToDatabase();
-    const roles = await Role.find({ type }).select("_id").lean().exec();
+    const roles = await Role.find(
+      type === "internal" ? { $or: [{ type: "internal" }, { type: { $exists: false } }] } : { type },
+    ).select("_id").lean().exec();
     const users = await User.find()
       .where("role").in(roles.map((role) => role._id))
       .select("-password")
@@ -45,7 +47,7 @@ export const POST = withAuth("users:create", async (request) => {
 
     await connectToDatabase();
     const role = await Role.findById(parsed.data.roleId).select("_id type");
-    if (!role || role.type !== type) {
+    if (!role || (role.type !== type && !(type === "internal" && !role.type))) {
       return NextResponse.json({ error: "Choose a role for this account type." }, { status: 400 });
     }
     const password = await hash(parsed.data.password, 12);

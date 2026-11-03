@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { StyledSelect } from "@/components/ui/StyledSelect";
 
 type RoleOption = { _id: string; name: string };
 type UserValues = { _id: string; name: string; email: string; roleId: string; isActive: boolean };
@@ -60,7 +61,7 @@ export function UserForm({
       <div className="form-grid">
         <label>Full name<input value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} /></label>
         <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
-        <label>{accountType === "client" ? "Client role" : "Role"}<select value={roleId} onChange={(e) => setRoleId(e.target.value)} required><option value="" disabled>Select a role</option>{roles.map((role) => <option value={role._id} key={role._id}>{role.name}</option>)}</select></label>
+        <label>{accountType === "client" ? "Client role" : "Role"}<StyledSelect value={roleId} onChange={setRoleId} required options={[{ value: "", label: "Select a role" }, ...roles.map((role) => ({ value: role._id, label: role.name }))]} /></label>
         <label>{initial ? "New password (optional)" : "Temporary password"}
           <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required={!initial} minLength={12} maxLength={128} placeholder={initial ? "Leave blank to keep current password" : "At least 12 characters"} />
         </label>

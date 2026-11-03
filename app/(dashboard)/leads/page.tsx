@@ -3,7 +3,7 @@ import { requirePermission } from "@/lib/server/permissions";
 import { connectToDatabase } from "@/lib/db/connect";
 import Lead from "@/models/Lead";
 import { leadQuerySchema } from "@/lib/validations/lead.schema";
-import { LEAD_STATUSES } from "@/lib/permissions";
+import { LeadStatusFilter } from "@/components/leads/LeadStatusFilter";
 import {
   canManageLeadPrice,
   formatUsd,
@@ -63,13 +63,15 @@ export default async function LeadsPage({
       </header>
       <form className="filter-bar" action="/leads">
         <label className="search-field">Search leads<input name="search" defaultValue={filters.search} placeholder="Name, email or phone" /></label>
-        <label>Status<select name="status" defaultValue={filters.status ?? ""}><option value="">All statuses</option>{LEAD_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select></label>
+        <label>Status
+          <LeadStatusFilter value={filters.status ?? ""} />
+        </label>
         <button className="button button-secondary">Filter</button>
       </form>
       <div className="table-card">
         {leads.length ? (
           <div className="table-scroll"><table>
-            <thead><tr><th>Name</th><th>Contact</th><th>Status</th>{canViewFinalPrice && <th>Final price</th>}<th>Assigned to</th><th>Created</th><th><span className="sr-only">Actions</span></th></tr></thead>
+            <thead><tr><th>Name</th><th>Contact</th><th>Status</th>{canViewFinalPrice && <th>Price</th>}<th>Call Transfered To</th><th>Created</th><th><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>{leads.map((lead) => (
               <tr key={String(lead._id)}>
                 <td><Link className="table-primary-link" href={`/leads/${lead._id}`}>{lead.name}</Link><span className="table-subtext">{lead.address.city}, {lead.address.country}</span></td>
