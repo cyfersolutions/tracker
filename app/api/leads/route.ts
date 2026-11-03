@@ -68,9 +68,10 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
   let uploadedVideoPath: string | undefined;
   let keepUploadedVideo = false;
   try {
+    const canAssign = user.isSuperAdmin || user.role.permissions.includes("leads:edit");
     const submission = await readLeadSubmission(request);
     uploadedVideoPath = submission.file?.path;
-    const body =
+    const submittedBody =
       typeof submission.body === "object" &&
       submission.body !== null &&
       !Array.isArray(submission.body)
@@ -79,6 +80,16 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
             ...(submission.file ? { videoUrl: submission.file.videoUrl } : {}),
           }
         : submission.body;
+    const body =
+      typeof submittedBody === "object" &&
+      submittedBody !== null &&
+      !Array.isArray(submittedBody) &&
+      !canAssign &&
+      (!("assignedTo" in submittedBody) ||
+        submittedBody.assignedTo === null ||
+        submittedBody.assignedTo === "")
+          ? { ...submittedBody, assignedTo: String(user._id) }
+          : submittedBody;
     const parsed = leadSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -101,7 +112,6 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
 
     await connectToDatabase();
     const { assignedTo, ...leadData } = parsed.data;
-    const canAssign = user.isSuperAdmin || user.role.permissions.includes("leads:edit");
     if (assignedTo && !canAssign) {
       return NextResponse.json(
         { error: "The leads:edit permission is required to assign a lead." },

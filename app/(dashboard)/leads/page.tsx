@@ -80,7 +80,7 @@ export default async function LeadsPage({
                     <strong>
                       {formatUsd(
                         lead.finalPrice ??
-                          getLeadTotalPrice({ basePrice: lead.basePrice ?? 10, topUps: lead.topUps ?? [] }),
+                          getLeadTotalPrice({ basePrice: lead.basePrice ?? 50, topUps: lead.topUps ?? [] }),
                       )}
                     </strong>
                   </td>

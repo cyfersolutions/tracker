@@ -47,7 +47,7 @@ export default async function LeadDetailPage({
     lead.status !== "CLOSED";
   const totalPrice =
     lead.finalPrice ??
-    getLeadTotalPrice({ basePrice: lead.basePrice ?? 10, topUps: lead.topUps ?? [] });
+    getLeadTotalPrice({ basePrice: lead.basePrice ?? 50, topUps: lead.topUps ?? [] });
 
   return (
     <div className="page-wrap narrow-page">
@@ -64,11 +64,12 @@ export default async function LeadDetailPage({
         <dl className="detail-grid">
           <div><dt>Status</dt><dd><span className={`status-badge status-${lead.status}`}>{lead.status}</span></dd></div>
           {canViewFinalPrice && <div><dt>Final price</dt><dd className="price-total">{formatUsd(totalPrice)}</dd></div>}
-          {canViewFinalPrice && <div><dt>Starting price</dt><dd>{formatUsd(lead.basePrice ?? 10)}</dd></div>}
+          {canViewFinalPrice && <div><dt>Starting price</dt><dd>{formatUsd(lead.basePrice ?? 50)}</dd></div>}
           <div className="span-two"><dt>Video</dt><dd>{lead.videoUrl ? <a className="text-link" href={lead.videoUrl} target="_blank" rel="noopener noreferrer">Open video</a> : "No file uploaded"}</dd></div>
           <div><dt>Roof size</dt><dd>{lead.roofSize.toLocaleString()} sq ft</dd></div>
           <div><dt>Street</dt><dd>{lead.address.street}</dd></div>
           <div><dt>City</dt><dd>{lead.address.city}</dd></div>
+          <div><dt>State</dt><dd>{lead.address.state}</dd></div>
           <div><dt>Country</dt><dd>{lead.address.country}</dd></div>
           <div><dt>Postal code</dt><dd>{lead.address.postalCode}</dd></div>
           <div><dt>Call Transfered To</dt><dd>{typeof lead.assignedTo === "object" && lead.assignedTo ? lead.assignedTo.name : "Unassigned"}</dd></div>
@@ -84,7 +85,7 @@ export default async function LeadDetailPage({
         {canViewFinalPrice && (
           <div className="price-line">
             <span>Starting price</span>
-            <strong>{formatUsd(lead.basePrice ?? 10)}</strong>
+            <strong>{formatUsd(lead.basePrice ?? 50)}</strong>
           </div>
         )}
         {canViewFinalPrice && (lead.topUps ?? []).map((topUp: {

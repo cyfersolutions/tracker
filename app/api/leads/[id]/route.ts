@@ -99,7 +99,7 @@ export const PUT = withAuth("leads:edit", async (request, context, user) => {
         { status: 400 },
       );
     }
-    const previousBasePrice = existing.basePrice ?? 10;
+    const previousBasePrice = existing.basePrice ?? 50;
     const nextBasePrice = canManageLeadPrice(user) ? parsed.data.basePrice : previousBasePrice;
     if (
       existing.status === "CLOSED" &&

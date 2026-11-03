@@ -39,7 +39,7 @@ export const GET = withAuth("leads:export", async (request: NextRequest, _contex
       .exec();
     const canExportPrices = canManageLeadPrice(user);
     const headers = [
-      "Name", "Email", "Phone", "Video", "Street", "City", "Country",
+      "Name", "Email", "Phone", "Video", "Street", "City", "State", "Country",
       "Postal code", "Roof size (sq ft)", "Status",
       ...(canExportPrices ? ["Base price (USD)", "Final price (USD)"] : []),
       "Assigned to", "Created at",
@@ -53,15 +53,16 @@ export const GET = withAuth("leads:export", async (request: NextRequest, _contex
         lead.videoUrl,
         lead.address.street,
         lead.address.city,
+        lead.address.state,
         lead.address.country,
         lead.address.postalCode,
         lead.roofSize,
         lead.status,
         ...(canExportPrices
           ? [
-              lead.basePrice ?? 10,
+              lead.basePrice ?? 50,
               lead.finalPrice ??
-                getLeadTotalPrice({ basePrice: lead.basePrice ?? 10, topUps: lead.topUps ?? [] }),
+                getLeadTotalPrice({ basePrice: lead.basePrice ?? 50, topUps: lead.topUps ?? [] }),
             ]
           : []),
         typeof lead.assignedTo === "object" && lead.assignedTo ? lead.assignedTo.name : "",

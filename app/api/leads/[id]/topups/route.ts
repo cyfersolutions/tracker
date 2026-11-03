@@ -53,7 +53,7 @@ export const POST = withAuth("leads:edit", async (request, context, user) => {
         {
           $set: {
             finalPrice: getLeadTotalPrice({
-              basePrice: existing.basePrice ?? 10,
+              basePrice: existing.basePrice ?? 50,
               topUps: existing.topUps ?? [],
             }),
           },
@@ -92,7 +92,7 @@ export const POST = withAuth("leads:edit", async (request, context, user) => {
     }
     const finalPrice =
       lead.finalPrice ??
-      getLeadTotalPrice({ basePrice: lead.basePrice ?? 10, topUps: lead.topUps ?? [] });
+      getLeadTotalPrice({ basePrice: lead.basePrice ?? 50, topUps: lead.topUps ?? [] });
     revalidatePath(`/leads/${id}`);
     revalidatePath("/leads");
     return NextResponse.json({

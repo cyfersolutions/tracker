@@ -20,18 +20,21 @@ const validLead = {
   address: {
     street: "1 Main Street",
     city: "Denver",
+    state: "Colorado",
     country: "United States",
     postalCode: "80202",
   },
   roofSize: 1200,
+  assignedTo: "507f1f77bcf86cd799439011",
 };
 
-test("lead input normalizes email/status and applies default status", () => {
+test("lead input normalizes optional email and status", () => {
   const parsed = leadSchema.parse(validLead);
   assert.equal(parsed.email, "jordan@example.com");
   assert.equal(parsed.status, "NEW");
   assert.equal(parsed.notes, "");
   assert.equal(leadSchema.parse({ ...validLead, status: "contacted" }).status, "CONTACTED");
+  assert.equal(leadSchema.parse({ ...validLead, email: "" }).email, undefined);
 });
 
 test("lead input rejects invalid status, negative area, and incomplete address", () => {
@@ -46,7 +49,7 @@ test("lead input rejects invalid status, negative area, and incomplete address",
   assert.equal(leadSchema.safeParse({ ...validLead, email: "not-an-email" }).success, false);
   assert.equal(leadSchema.safeParse({ ...validLead, phone: "4155552671" }).success, false);
   assert.equal(leadSchema.safeParse({ ...validLead, phone: "+1 415 555 2671" }).success, false);
-  assert.equal(leadSchema.safeParse({ ...validLead, videoUrl: "" }).success, true);
+  assert.equal(leadSchema.safeParse({ ...validLead, videoUrl: "" }).success, false);
   assert.equal(leadSchema.safeParse({ ...validLead, videoUrl: "javascript:alert(1)" }).success, false);
   assert.equal(
     leadSchema.safeParse({
@@ -116,29 +119,29 @@ test("permissions copied from database values are cloneable plain arrays", () =>
 });
 
 test("lead final price adds top-ups to its base price", () => {
-  assert.equal(getLeadTotalPrice({ basePrice: 10, topUps: [{ amount: 50 }] }), 60);
-  assert.equal(getLeadTotalPrice({ basePrice: 10, topUps: [{ amount: 50 }, { amount: 6 }] }), 66);
-  assert.equal(getLeadTotalPrice({ basePrice: 10, topUps: [] }), 10);
+  assert.equal(getLeadTotalPrice({ basePrice: 50, topUps: [{ amount: 50 }] }), 100);
+  assert.equal(getLeadTotalPrice({ basePrice: 50, topUps: [{ amount: 50 }, { amount: 6 }] }), 106);
+  assert.equal(getLeadTotalPrice({ basePrice: 50, topUps: [] }), 50);
 });
 
 test("changing an open lead's base price preserves its previous positive price", () => {
-  const previousPrice = getPreviousBasePriceAdjustment(10, 20);
-  assert.equal(previousPrice, 10);
+  const previousPrice = getPreviousBasePriceAdjustment(50, 20);
+  assert.equal(previousPrice, 50);
   assert.equal(
     getLeadTotalPrice({
       basePrice: 20,
       topUps: [{ amount: 50 }, ...(previousPrice === null ? [] : [{ amount: previousPrice }])],
     }),
-    80,
+    120,
   );
-  assert.equal(getPreviousBasePriceAdjustment(10, 10), null);
+  assert.equal(getPreviousBasePriceAdjustment(50, 50), null);
   assert.equal(getPreviousBasePriceAdjustment(0, 10), null);
 });
 
 test("internal lead API payloads omit all price details", () => {
   const visibleLead = omitLeadPrices({
     name: "Jordan Lee",
-    basePrice: 10,
+    basePrice: 50,
     finalPrice: 60,
     topUps: [{ amount: 50 }],
   });

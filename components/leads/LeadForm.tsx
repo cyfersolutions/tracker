@@ -13,13 +13,13 @@ type LeadValues = {
   email: string;
   phone: string;
   videoUrl: string;
-  address: { street: string; city: string; country: string; postalCode: string };
+  address: { street: string; city: string; state: string; country: string; postalCode: string };
   roofSize: number;
   basePrice: number;
   topUps?: Array<{ amount: number }>;
   notes: string;
   status: LeadStatus;
-  assignedTo?: { _id?: string; id?: string; name?: string } | string | null;
+  assignedTo: { _id?: string; id?: string; name?: string } | string | null;
 };
 
 type Assignee = { _id: string; name: string; email: string };
@@ -54,11 +54,12 @@ const emptyLead: LeadValues = {
   email: "",
   phone: "",
   videoUrl: "",
-  address: { street: "", city: "", country: "", postalCode: "" },
+  address: { street: "", city: "", state: "", country: "", postalCode: "" },
   roofSize: 0,
-  basePrice: 10,
+  basePrice: 50,
   notes: "",
   status: "NEW",
+  assignedTo: null,
 };
 
 export function LeadForm({
@@ -77,7 +78,7 @@ export function LeadForm({
           ...emptyLead,
           ...initial,
           address: { ...emptyLead.address, ...initial.address },
-          basePrice: initial.basePrice ?? 10,
+          basePrice: initial.basePrice ?? 50,
           topUps: initial.topUps ?? [],
         }
       : emptyLead,
@@ -153,20 +154,20 @@ export function LeadForm({
 
   const displayRoofSize = fromSquareFeet(Number(values.roofSize), unit);
   const currentFinalPrice =
-    Number(values.basePrice ?? 10) +
+    Number(values.basePrice ?? 50) +
     (values.topUps ?? []).reduce((total, topUp) => total + topUp.amount, 0) +
     (initial &&
     initial.status !== "CLOSED" &&
     values.basePrice !== initial.basePrice &&
-    (initial.basePrice ?? 10) > 0
-      ? initial.basePrice ?? 10
+    (initial.basePrice ?? 50) > 0
+      ? initial.basePrice ?? 50
       : 0);
 
   return (
     <form className="form-card stack-form" onSubmit={submit}>
       <div className="form-grid">
         <label>Full name<input value={values.name} onChange={(e) => setField("name", e.target.value)} required maxLength={160} /></label>
-        <label>Email<input type="email" value={values.email} onChange={(e) => setField("email", e.target.value)} required /></label>
+        <label>Email<input type="email" value={values.email} onChange={(e) => setField("email", e.target.value)} /></label>
         <label>Phone
           <input
             type="tel"
@@ -179,10 +180,11 @@ export function LeadForm({
             required
           />
         </label>
-        <label className="span-two">Upload File
+        <label className="span-two">Voice recording
           <input
             type="file"
             onChange={(event) => setVideoFile(event.target.files?.[0] ?? null)}
+            required={!initial?.videoUrl}
           />
           {initial?.videoUrl && !videoFile && (
             <span className="table-subtext">
@@ -201,6 +203,7 @@ export function LeadForm({
         </label>
         <label className="span-two">Street address<input value={values.address.street} onChange={(e) => updateAddress("street", e.target.value)} required /></label>
         <label>City<input value={values.address.city} onChange={(e) => updateAddress("city", e.target.value)} required /></label>
+        <label>State<input value={values.address.state} onChange={(e) => updateAddress("state", e.target.value)} required /></label>
         <label>Country<input value={values.address.country} onChange={(e) => updateAddress("country", e.target.value)} required /></label>
         <label>Postal code<input value={values.address.postalCode} onChange={(e) => updateAddress("postalCode", e.target.value)} required /></label>
         <label>Roof size
@@ -217,7 +220,7 @@ export function LeadForm({
             min="0"
             max="10000000"
             step="0.01"
-            value={values.basePrice ?? 10}
+            value={values.basePrice ?? 50}
             onChange={(e) => setField("basePrice", Number(e.target.value))}
             readOnly={initial?.status === "CLOSED"}
             required
@@ -229,8 +232,8 @@ export function LeadForm({
             </span>
           )}
         </label>}
-        {canAssign && <label>Call Transfered To
-          <select value={assignedId} onChange={(e) => setField("assignedTo", e.target.value || null)}>
+        {canAssign && <label>Assigned to
+          <select value={assignedId} onChange={(e) => setField("assignedTo", e.target.value || null)} required>
             <option value="">Unassigned</option>
             {assignees.map((user) => <option key={user._id} value={user._id}>{user.name} ({user.email})</option>)}
           </select>

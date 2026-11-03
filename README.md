@@ -47,7 +47,7 @@ An account appears under **Clients** or **Users** according to its assigned role
 
 ## Lead pricing
 
-New leads start with a $10 USD base price. Only Super Admins and client accounts with `leads:edit` can set or change prices and add described USD top-ups; each price-history entry is attributed and timestamped. The accumulated final price (base price plus all price-history entries and top-ups) is persisted in `finalPrice`. Only Super Admins and client accounts with `leads:view` can see price amounts and price history in lead lists, details, and exports. Setting the lead status to `CLOSED` permanently disables further top-ups, price changes, and reopening.
+New leads start with a $50 USD base price. Only Super Admins and client accounts with `leads:edit` can set or change prices and add described USD top-ups; each price-history entry is attributed and timestamped. The accumulated final price (base price plus all price-history entries and top-ups) is persisted in `finalPrice`. Only Super Admins and client accounts with `leads:view` can see price amounts and price history in lead lists, details, and exports. Setting the lead status to `CLOSED` permanently disables further top-ups, price changes, and reopening.
 
 Lead name, email, E.164 phone number (for example `+14155552671`), street, city, country, postal code, and roof size are required. Video uploads are optional and have no server-side type or extension checks; uploads are limited to 250 MB. Multer stores uploads outside the public directory in `uploads/lead-videos` by default; set `LEAD_VIDEO_STORAGE_DIR` to a persistent server directory when deploying. Uploaded files are served through an authenticated endpoint. When editing a lead, leave the file picker empty to keep its current video.
 

@@ -10,8 +10,9 @@ const leadSchema = new Schema(
     name: { type: String, required: true, trim: true, maxlength: 160 },
     email: {
       type: String,
-      required: true,
+      required: false,
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true,
       maxlength: 254,
@@ -24,7 +25,7 @@ const leadSchema = new Schema(
     },
     videoUrl: {
       type: String,
-      required: false,
+      required: true,
       trim: true,
       maxlength: 2048,
       match: VIDEO_URL_PATTERN,
@@ -32,12 +33,13 @@ const leadSchema = new Schema(
     address: {
       street: { type: String, required: true, trim: true, maxlength: 200 },
       city: { type: String, required: true, trim: true, maxlength: 120 },
+      state: { type: String, required: true, trim: true, maxlength: 120 },
       country: { type: String, required: true, trim: true, maxlength: 120 },
       postalCode: { type: String, required: true, trim: true, maxlength: 24 },
     },
     roofSize: { type: Number, required: true, min: 0 },
-    basePrice: { type: Number, required: true, min: 0, default: 10 },
-    finalPrice: { type: Number, required: true, min: 0, default: 10 },
+    basePrice: { type: Number, required: true, min: 0, default: 50 },
+    finalPrice: { type: Number, required: true, min: 0, default: 50 },
     topUps: {
       type: [
         new Schema(
@@ -60,7 +62,7 @@ const leadSchema = new Schema(
       default: LEAD_STATUSES[0],
       index: true,
     },
-    assignedTo: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    assignedTo: { type: Schema.Types.ObjectId, ref: "User", required: true },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true },

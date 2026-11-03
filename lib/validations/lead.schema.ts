@@ -1,18 +1,15 @@
 import { z } from "zod";
 import { LEAD_STATUSES } from "@/lib/permissions";
 
-const optionalObjectId = z
-  .string()
-  .regex(/^[a-f\d]{24}$/i, "Choose a valid user.")
-  .nullable()
-  .optional();
-
 const uploadedVideoPath =
   /^\/api\/leads\/videos\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:\.[a-z0-9]{1,10})?$/i;
 
 export const leadSchema = z.object({
   name: z.string().trim().min(1).max(160),
-  email: z.email().trim().toLowerCase().max(254),
+  email: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.email().trim().toLowerCase().max(254).optional(),
+  ),
   phone: z
     .string()
     .trim()
@@ -21,6 +18,7 @@ export const leadSchema = z.object({
     .string()
     .trim()
     .max(2048)
+    .min(1, "A voice recording is required.")
     .refine(
       (value) =>
         value === "" ||
@@ -31,17 +29,20 @@ export const leadSchema = z.object({
   address: z.object({
     street: z.string().trim().min(1).max(200),
     city: z.string().trim().min(1).max(120),
+    state: z.string().trim().min(1).max(120),
     country: z.string().trim().min(1).max(120),
     postalCode: z.string().trim().min(1).max(24),
   }),
   roofSize: z.number().finite().min(0),
-  basePrice: z.number().finite().min(0).max(10000000).multipleOf(0.01).optional().default(10),
+  basePrice: z.number().finite().min(0).max(10000000).multipleOf(0.01).optional().default(50),
   notes: z.string().max(10000).optional().default(""),
   status: z.preprocess(
     (value) => (typeof value === "string" ? value.toUpperCase() : value),
     z.enum(LEAD_STATUSES).optional().default(LEAD_STATUSES[0]),
   ),
-  assignedTo: optionalObjectId,
+  assignedTo: z
+    .string()
+    .regex(/^[a-f\d]{24}$/i, "Choose an active assignee."),
 });
 
 export const leadQuerySchema = z.object({

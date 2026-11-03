@@ -80,11 +80,12 @@ An internal CMS for managing sales leads with full role-based access control (RB
 {
   _id: ObjectId,
   name: string,               // required, full name
-  email: string,              // required, unique
+  email?: string,             // optional, unique when provided
   phone: string,              // required
   address: {
     street: string,           // required
     city: string,             // required
+    state: string,            // required
     country: string,          // required
     postalCode: string        // required
   },
@@ -97,7 +98,7 @@ An internal CMS for managing sales leads with full role-based access control (RB
     "lost",
     "converted"
   ],                          // default: "new"
-  assignedTo: ObjectId,       // ref: User, optional
+  assignedTo: ObjectId,       // ref: User, required
   createdBy: ObjectId,        // ref: User, set on create
   createdAt: Date,
   updatedAt: Date

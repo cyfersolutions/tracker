@@ -17,7 +17,8 @@ test("all referenced models are registered before populate queries", () => {
   assert.ok(leadSchema.path("videoUrl"));
   assert.ok(leadSchema.path("finalPrice"));
   assert.deepEqual(leadSchema.path("status")?.options.enum, LEAD_STATUSES);
-  assert.equal(leadSchema.path("finalPrice").options.default, 10);
+  assert.equal(leadSchema.path("basePrice").options.default, 50);
+  assert.equal(leadSchema.path("finalPrice").options.default, 50);
   assert.equal(leadSchema.path("assignedTo").options.ref, "User");
   assert.equal(leadSchema.path("createdBy").options.ref, "User");
   assert.equal(leadSchema.path("topUps.addedBy")?.options.ref, "User");
