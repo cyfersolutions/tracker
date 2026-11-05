@@ -12,6 +12,7 @@ export default async function ClientsPage() {
   const clients = await User.find({ role: { $in: clientRoles.map((role) => role._id) } })
     .select("-password")
     .populate("role", "name")
+    .populate("campaignIds", "name")
     .sort({ createdAt: -1 })
     .lean()
     .exec();
@@ -27,27 +28,18 @@ export default async function ClientsPage() {
           <h1>Clients</h1>
           <p className="muted">{clients.length} client account{clients.length === 1 ? "" : "s"}</p>
         </div>
-        {canCreate && clientRoles.length > 0 && <Link href="/clients/new" className="button button-primary">Add client</Link>}
+        {canCreate && <Link href="/clients/new" className="button button-primary">Add client</Link>}
       </header>
-      {clientRoles.length === 0 && (
-        <section className="welcome-panel">
-          <div>
-            <p className="eyebrow">CLIENT ROLE REQUIRED</p>
-            <h2>Create a client role to get started</h2>
-            <p className="muted">There is no Client role available, so a client account cannot be created yet. Set a role’s type to Client, or create a new Client role.</p>
-          </div>
-          {currentUser.isSuperAdmin && <Link href="/roles/new" className="button button-secondary">Create role</Link>}
-        </section>
-      )}
       <div className="table-card">
         <div className="table-scroll"><table>
-          <thead><tr><th>Client</th><th>Client role</th><th>Status</th><th>Joined</th><th><span className="sr-only">Actions</span></th></tr></thead>
+          <thead><tr><th>Client</th><th>Account type</th><th>Campaigns</th><th>Access</th><th>Status</th><th>Joined</th><th><span className="sr-only">Actions</span></th></tr></thead>
           <tbody>{clients.map((client) => {
-            const roleName = typeof client.role === "object" && client.role ? client.role.name : "Unassigned";
             return (
               <tr key={String(client._id)}>
                 <td><strong>{client.name}</strong><span className="table-subtext">{client.email}</span></td>
-                <td>{roleName}</td>
+                <td><span className="status-badge status-new">Client</span></td>
+                <td>{Array.isArray(client.campaignIds) && client.campaignIds.length > 0 ? client.campaignIds.map((campaign: { name?: string } | string) => typeof campaign === "object" && campaign ? campaign.name ?? "Unknown" : "Unknown").join(", ") : "None"}</td>
+                <td>View leads · Add price top-ups</td>
                 <td><span className={`status-badge ${client.isActive ? "status-converted" : "status-lost"}`}>{client.isActive ? "Active" : "Inactive"}</span></td>
                 <td>{new Date(client.createdAt).toLocaleDateString()}</td>
                 <td><div className="row-actions">
@@ -58,7 +50,7 @@ export default async function ClientsPage() {
             );
           })}</tbody>
         </table></div>
-        {clients.length === 0 && clientRoles.length > 0 && <div className="empty-state"><h2>No clients yet</h2><p>Create a client account and assign it to a client role.</p></div>}
+        {clients.length === 0 && <div className="empty-state"><h2>No clients yet</h2><p>Create a client account with fixed client access.</p></div>}
       </div>
     </div>
   );

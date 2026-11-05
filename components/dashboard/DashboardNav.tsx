@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useAppGuard } from "@/context/AppGuard";
+import { ClientCampaignNav } from "@/components/dashboard/ClientCampaignNav";
 
 export function DashboardNav() {
   const { data: session } = useSession();
   const { can } = useAppGuard();
   const isSuperAdmin = session?.user?.isSuperAdmin === true;
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isClient = session?.user?.accountType === "client";
+  if (isClient && !searchParams.get("campaign")) return null;
 
   function navLink(href: string, label: string) {
     const active =
@@ -28,14 +32,15 @@ export function DashboardNav() {
         <span>Lead CMS</span>
       </Link>
       <nav className="primary-nav" aria-label="Main navigation">
-        {navLink("/dashboard", "Overview")}
-        {can("leads:view") && navLink("/leads", "Leads")}
+        {isClient ? <ClientCampaignNav showSelector={false} /> : navLink("/dashboard", "Overview")}
+        {can("campaigns:view") && navLink("/campaigns", "Campaigns")}
+        {can("leads:view") && !isClient && navLink("/leads", "Leads")}
         {can("roles:view") && navLink("/roles", "Roles")}
         {can("users:view") && navLink("/clients", "Clients")}
         {can("users:view") && navLink("/users", "Users")}
         {isSuperAdmin && navLink("/settings", "Settings")}
       </nav>
-      <div className="sidebar-user">
+      {!isClient && <div className="sidebar-user">
         <div className="user-avatar">{session?.user?.name?.slice(0, 1) ?? "U"}</div>
         <div className="user-info">
           <strong>{session?.user?.name}</strong>
@@ -44,7 +49,7 @@ export function DashboardNav() {
         <button className="button button-quiet" onClick={() => signOut({ callbackUrl: "/login" })}>
           Sign out
         </button>
-      </div>
+      </div>}
     </aside>
   );
 }

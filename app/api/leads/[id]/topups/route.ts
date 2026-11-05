@@ -7,7 +7,7 @@ import { canManageLeadPrice, getLeadTotalPrice } from "@/lib/lead-pricing";
 import { leadTopUpSchema } from "@/lib/validations/lead.schema";
 import Lead from "@/models/Lead";
 
-export const POST = withAuth("leads:edit", async (request, context, user) => {
+export const POST = withAuth("leads:topup", async (request, context, user) => {
   if (!canManageLeadPrice(user)) {
     return NextResponse.json(
       { error: "Only Super Admins and clients can add lead price top-ups." },
@@ -28,6 +28,10 @@ export const POST = withAuth("leads:edit", async (request, context, user) => {
       );
     }
     await connectToDatabase();
+    const leadAccessFilter =
+      user.role.type === "client"
+        ? { _id: id, campaign: { $in: user.campaignIds ?? [] } }
+        : { _id: id };
     const topUp = {
       _id: new Types.ObjectId(),
       ...parsed.data,
@@ -35,7 +39,7 @@ export const POST = withAuth("leads:edit", async (request, context, user) => {
       addedAt: new Date(),
     };
     const existing = await Lead.findOne({
-      _id: id,
+      ...leadAccessFilter,
       status: { $ne: "CLOSED" },
     }).select("basePrice finalPrice topUps");
     if (!existing) {

@@ -9,6 +9,7 @@ export const authConfig = {
       if (user) {
         token.sub = user.id;
         token.roleId = user.roleId;
+        token.accountType = user.accountType;
         token.isSuperAdmin = user.isSuperAdmin;
         token.permissions = [...user.permissions];
       }
@@ -18,6 +19,7 @@ export const authConfig = {
       if (session.user) {
         session.user.userId = token.sub ?? "";
         session.user.roleId = token.roleId;
+        session.user.accountType = token.accountType === "client" ? "client" : "user";
         session.user.isSuperAdmin = token.isSuperAdmin;
         session.user.permissions = [...token.permissions];
       }

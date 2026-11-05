@@ -27,6 +27,7 @@ export default async function LeadDetailPage({
     .populate("createdBy", "name")
     .lean();
   if (!lead) notFound();
+  if (user.role.type === "client" && (!lead.campaign || !(user.campaignIds ?? []).some((campaignId: unknown) => String(campaignId) === String(lead.campaign)))) notFound();
   const creatorIds = [
     ...new Set(
       ((lead.topUps ?? []) as Array<{ addedBy: Types.ObjectId | null }>).map(
@@ -43,7 +44,9 @@ export default async function LeadDetailPage({
   const canViewFinalPrice = canManageLeadPrice(user);
   const canAddTopUp =
     canViewFinalPrice &&
-    (user.isSuperAdmin || user.role.permissions.includes("leads:edit")) &&
+    (user.isSuperAdmin ||
+      user.role.permissions.includes("leads:edit") ||
+      user.role.permissions.includes("leads:topup")) &&
     lead.status !== "CLOSED";
   const totalPrice =
     lead.finalPrice ??

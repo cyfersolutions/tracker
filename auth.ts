@@ -29,21 +29,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await User.findOne({ email: parsed.data.email })
           .select("+password")
           .populate<{ role: InstanceType<typeof Role> | null }>("role");
-        if (!user || !user.isActive || !user.role) return null;
+        if (user) {
+          if (!user.isActive || !user.role) return null;
 
-        const passwordMatches = await compare(parsed.data.password, user.password);
-        if (!passwordMatches) return null;
+          const passwordMatches = await compare(parsed.data.password, user.password);
+          if (!passwordMatches) return null;
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          roleId: user.role.id,
-          isSuperAdmin: user.isSuperAdmin,
-          permissions: user.isSuperAdmin
-            ? toPlainPermissions(ALL_PERMISSIONS)
-            : toPlainPermissions(user.role.permissions),
-        };
+          const permissions = user.role.type === "client"
+            ? ["leads:view", "leads:topup"]
+            : user.isSuperAdmin
+              ? toPlainPermissions(ALL_PERMISSIONS)
+              : toPlainPermissions(user.role.permissions);
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            roleId: user.role.id,
+            accountType: user.role.type === "client" ? "client" as const : "user" as const,
+            isSuperAdmin: user.isSuperAdmin,
+            permissions,
+          };
+        }
+        return null;
       },
     }),
   ],

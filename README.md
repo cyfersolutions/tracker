@@ -39,17 +39,23 @@ The seed command creates the `Super Admin` system role and account if absent. It
 
 Middleware redirects unauthenticated page requests to `/login`. Each protected server page and API handler also revalidates the account and its current role against MongoDB. Client permission gates only control presentation and do not replace server authorization.
 
-## Client roles and accounts
+## Roles and accounts
 
-The Super Admin can choose **Internal** or **Client** when creating a role and configure its permissions. Client accounts are managed separately from internal users under **Clients** and can only be assigned to client-type roles. Both areas use the corresponding `users:*` permissions.
+Roles are configured for internal team access. The role editor does not expose the client-only `leads:topup` permission.
+
+Client creation always assigns the protected **Client** role. The client form does not expose a role selector; Client accounts have lead viewing and price top-up access.
 
 An account appears under **Clients** or **Users** according to its assigned role type. Editing a role's type moves all accounts assigned to that role between those tabs; the role editor warns and asks for confirmation before saving this change.
 
 ## Lead pricing
 
-New leads start with a $50 USD base price. Only Super Admins and client accounts with `leads:edit` can set or change prices and add described USD top-ups; each price-history entry is attributed and timestamped. The accumulated final price (base price plus all price-history entries and top-ups) is persisted in `finalPrice`. Only Super Admins and client accounts with `leads:view` can see price amounts and price history in lead lists, details, and exports. Setting the lead status to `CLOSED` permanently disables further top-ups, price changes, and reopening.
+New leads start with a $50 USD base price. Only Super Admins and Client accounts can add described USD top-ups; each price-history entry is attributed and timestamped. The accumulated final price (base price plus all price-history entries and top-ups) is persisted in `finalPrice`. Only Super Admins and Client accounts can see price amounts and price history in lead lists, details, and exports. Setting the lead status to `CLOSED` permanently disables further top-ups, price changes, and reopening.
 
 Super Admins can update the default lead price from **Settings**. The value is persisted in the `Settings` collection and updates all open leads by replacing their base price while preserving existing top-ups. Closed leads remain unchanged.
+
+## Campaigns
+
+Super Admins manage campaigns from **Campaigns**. A lead may belong to one campaign or **None**. Client accounts can be assigned multiple campaigns; clients only see leads belonging to their assigned campaigns.
 
 Lead name, email, E.164 phone number (for example `+14155552671`), street, city, country, postal code, and roof size are required. Video uploads are optional and have no server-side type or extension checks; uploads are limited to 250 MB. Multer stores uploads outside the public directory in `uploads/lead-videos` by default; set `LEAD_VIDEO_STORAGE_DIR` to a persistent server directory when deploying. Uploaded files are served through an authenticated endpoint. When editing a lead, leave the file picker empty to keep its current video.
 

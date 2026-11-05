@@ -43,6 +43,7 @@ export const leadSchema = z.object({
   assignedTo: z
     .string()
     .regex(/^[a-f\d]{24}$/i, "Choose an active assignee."),
+  campaign: z.string().regex(/^[a-f\d]{24}$/i, "Choose a valid campaign.").nullable().optional(),
 });
 
 export const leadQuerySchema = z.object({

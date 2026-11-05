@@ -6,6 +6,8 @@ import Role from "@/models/Role";
 import type { RoleType } from "@/lib/role-types";
 import User from "@/models/User";
 import { createUserSchema } from "@/lib/validations/user.schema";
+import { getClientRole } from "@/lib/db/client-role";
+import Campaign from "@/models/Campaign";
 
 function requestedRoleType(request: Request): RoleType | null {
   const type = new URL(request.url).searchParams.get("type") ?? "internal";
@@ -46,7 +48,16 @@ export const POST = withAuth("users:create", async (request) => {
     }
 
     await connectToDatabase();
-    const role = await Role.findById(parsed.data.roleId).select("_id type");
+    const role = type === "client"
+      ? await getClientRole()
+      : parsed.data.roleId
+        ? await Role.findById(parsed.data.roleId).select("_id type")
+        : null;
+    if (type === "client") {
+      const campaignIds = parsed.data.campaignIds ?? [];
+      const count = await Campaign.countDocuments({ _id: { $in: campaignIds }, isActive: true });
+      if (count !== campaignIds.length) return NextResponse.json({ error: "Choose only active campaigns." }, { status: 400 });
+    }
     if (!role || (role.type !== type && !(type === "internal" && !role.type))) {
       return NextResponse.json({ error: "Choose a role for this account type." }, { status: 400 });
     }
@@ -56,6 +67,7 @@ export const POST = withAuth("users:create", async (request) => {
       email: parsed.data.email,
       password,
       role: role._id,
+      campaignIds: type === "client" ? parsed.data.campaignIds : [],
     });
     return NextResponse.json(
       { id: user.id, name: user.name, email: user.email, roleId: String(role._id) },

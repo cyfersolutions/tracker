@@ -21,9 +21,11 @@ type LeadValues = {
   notes: string;
   status: LeadStatus;
   assignedTo: { _id?: string; id?: string; name?: string } | string | null;
+  campaign?: { _id?: string } | string | null;
 };
 
 type Assignee = { _id: string; name: string; email: string };
+type CampaignOption = { _id: string; name: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -61,16 +63,19 @@ const emptyLead: LeadValues = {
   notes: "",
   status: "NEW",
   assignedTo: null,
+  campaign: null,
 };
 
 export function LeadForm({
   initial,
   canManagePrice,
   defaultLeadPrice = 50,
+  campaigns = [],
 }: {
   initial?: LeadValues;
   canManagePrice: boolean;
   defaultLeadPrice?: number;
+  campaigns?: CampaignOption[];
 }) {
   const router = useRouter();
   const { can } = useAppGuard();
@@ -129,6 +134,7 @@ export function LeadForm({
       ...(canManagePrice ? { basePrice: Number(basePrice) } : {}),
       roofSize: Number(values.roofSize),
       assignedTo: canAssign ? assignedId || null : null,
+      campaign: typeof values.campaign === "string" ? values.campaign || null : values.campaign?._id ?? null,
     };
     try {
       const body = new FormData();
@@ -170,6 +176,16 @@ export function LeadForm({
     <form className="form-card stack-form" onSubmit={submit}>
       <div className="form-grid">
         <label>Full name<input value={values.name} onChange={(e) => setField("name", e.target.value)} required maxLength={160} /></label>
+        <label>Campaign
+          <StyledSelect
+            value={typeof values.campaign === "string" ? values.campaign : values.campaign?._id ?? ""}
+            onChange={(value) => setField("campaign", value || null)}
+            options={[
+              { value: "", label: "None" },
+              ...campaigns.map((campaign) => ({ value: campaign._id, label: campaign.name })),
+            ]}
+          />
+        </label>
         <label>Email<input type="email" value={values.email} onChange={(e) => setField("email", e.target.value)} /></label>
         <label>Phone
           <input

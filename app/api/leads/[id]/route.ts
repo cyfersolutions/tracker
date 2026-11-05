@@ -17,6 +17,7 @@ import {
   readLeadSubmission,
   removeUploadedLeadVideo,
 } from "@/lib/server/lead-video";
+import Campaign from "@/models/Campaign";
 
 export const runtime = "nodejs";
 
@@ -32,6 +33,9 @@ export const GET = withAuth("leads:view", async (_request, context, user) => {
       .populate("createdBy", "name")
       .lean();
     if (!lead) return NextResponse.json({ error: "Lead not found." }, { status: 404 });
+    if (user.role.type === "client" && (!lead.campaign || !(user.campaignIds ?? []).some((campaignId: unknown) => String(campaignId) === String(lead.campaign)))) {
+      return NextResponse.json({ error: "Lead not found." }, { status: 404 });
+    }
     return NextResponse.json(canManageLeadPrice(user) ? lead : omitLeadPrices(lead));
   } catch (error) {
     return apiError(error);
@@ -74,7 +78,11 @@ export const PUT = withAuth("leads:edit", async (request, context, user) => {
       );
     }
     await connectToDatabase();
-    const { assignedTo, ...leadData } = parsed.data;
+    const { assignedTo, campaign, ...leadData } = parsed.data;
+    if (campaign) {
+      const campaignRecord = await Campaign.findOne({ _id: campaign, isActive: true }).select("_id").lean();
+      if (!campaignRecord) return NextResponse.json({ error: "Campaign not found or inactive." }, { status: 400 });
+    }
     const editableLeadData = {
       name: leadData.name,
       email: leadData.email,
@@ -136,6 +144,7 @@ export const PUT = withAuth("leads:edit", async (request, context, user) => {
       ...editableLeadData,
       basePrice: nextBasePrice,
       assignedTo: assignedTo || null,
+      campaign: campaign || null,
       finalPrice: getLeadTotalPrice({
         basePrice: nextBasePrice,
         topUps: priceHistory,

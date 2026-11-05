@@ -4,8 +4,8 @@ import { Types } from "mongoose";
 import { UserForm } from "@/components/users/UserForm";
 import { requirePermission } from "@/lib/server/permissions";
 import { connectToDatabase } from "@/lib/db/connect";
-import Role from "@/models/Role";
 import User from "@/models/User";
+import Campaign from "@/models/Campaign";
 
 export default async function EditClientPage({
   params,
@@ -16,13 +16,11 @@ export default async function EditClientPage({
   const { id } = await params;
   if (!Types.ObjectId.isValid(id)) notFound();
   await connectToDatabase();
-  const [client, roles] = await Promise.all([
+  const [client, campaigns] = await Promise.all([
     User.findById(id).select("-password").lean(),
-    Role.find({ type: "client" }).select("name").sort({ name: 1 }).lean().exec(),
+    Campaign.find({ isActive: true }).select("_id name").sort({ name: 1 }).lean().exec(),
   ]);
   if (!client || client.isSuperAdmin) notFound();
-  const clientRole = await Role.findOne({ _id: client.role, type: "client" }).select("_id");
-  if (!clientRole) notFound();
   return (
     <div className="page-wrap narrow-page">
       <header className="page-heading">
@@ -35,10 +33,11 @@ export default async function EditClientPage({
           _id: String(client._id),
           name: client.name,
           email: client.email,
-          roleId: String(clientRole._id),
           isActive: client.isActive,
+          campaignIds: (client.campaignIds ?? []).map(String),
         }}
-        roles={roles.map((role) => ({ _id: String(role._id), name: role.name }))}
+        roles={[]}
+        campaigns={campaigns.map((campaign) => ({ _id: String(campaign._id), name: campaign.name }))}
       />
     </div>
   );

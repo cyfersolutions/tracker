@@ -78,6 +78,10 @@ test("role input accepts only defined permission keys", () => {
     roleSchema.safeParse({ name: "External Client", type: "client", permissions: ["leads:view"] }).success,
     true,
   );
+  assert.equal(
+    roleSchema.safeParse({ name: "Sales", permissions: ["leads:topup"] }).success,
+    false,
+  );
   assert.equal(roleSchema.safeParse({ name: "Sales", permissions: ["system:root"] }).success, false);
   assert.equal(roleSchema.safeParse({ name: "Sales", type: "root", permissions: [] }).success, false);
 });

@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { leadExportQuerySchema } from "@/lib/validations/query";
 import Lead from "@/models/Lead";
 import { canManageLeadPrice, getLeadTotalPrice } from "@/lib/lead-pricing";
+import { Types } from "mongoose";
 
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -25,8 +26,12 @@ export const GET = withAuth("leads:export", async (request: NextRequest, _contex
     }
 
     await connectToDatabase();
-    const { search, status } = parsed.data;
-    const filter: Record<string, unknown> = {};
+    const { search, status, campaign } = parsed.data;
+    const filter: Record<string, unknown> =
+      user.role.type === "client" ? { campaign: { $in: user.campaignIds ?? [] } } : {};
+    if (user.role.type === "client" && campaign && (user.campaignIds ?? []).some((id: unknown) => String(id) === campaign) && Types.ObjectId.isValid(campaign)) {
+      filter.campaign = campaign;
+    }
     if (status) filter.status = status;
     if (search) {
       const expression = new RegExp(escapeRegex(search), "i");

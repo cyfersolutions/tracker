@@ -7,6 +7,7 @@ declare module "next-auth" {
     user: {
       userId: string;
       roleId: string;
+      accountType: "user" | "client";
       isSuperAdmin: boolean;
       permissions: string[];
     } & NonNullable<DefaultSession["user"]>;
@@ -14,6 +15,7 @@ declare module "next-auth" {
 
   interface User {
     roleId: string;
+    accountType: "user" | "client";
     isSuperAdmin: boolean;
     permissions: string[];
   }
@@ -22,6 +24,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     roleId: string;
+    accountType: "user" | "client";
     isSuperAdmin: boolean;
     permissions: string[];
   }

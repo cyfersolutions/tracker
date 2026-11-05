@@ -13,6 +13,7 @@ test("all referenced models are registered before populate queries", () => {
 
   const userSchema = mongoose.model("User").schema;
   assert.equal(userSchema.path("role").options.ref, "Role");
+  assert.equal(userSchema.path("campaignIds").options.type[0].ref, "Campaign");
   const leadSchema = mongoose.model("Lead").schema;
   assert.ok(leadSchema.path("videoUrl"));
   assert.ok(leadSchema.path("finalPrice"));

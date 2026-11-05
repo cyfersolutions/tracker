@@ -64,6 +64,7 @@ const leadSchema = new Schema(
     },
     assignedTo: { type: Schema.Types.ObjectId, ref: "User", required: true },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    campaign: { type: Schema.Types.ObjectId, ref: "Campaign", default: null },
   },
   { timestamps: true },
 );
@@ -74,9 +75,12 @@ leadSchema.index({ name: "text", email: "text", phone: "text" });
 export type LeadDocument = InferSchemaType<typeof leadSchema>;
 const registeredStatusValues = models.Lead?.schema.path("status")?.options.enum ?? [];
 const registeredVideoUrlPattern = models.Lead?.schema.path("videoUrl")?.options.match;
+const registeredCampaignPath = models.Lead?.schema.path("campaign");
 if (models.Lead && (
   !models.Lead.schema.path("videoUrl") ||
   !models.Lead.schema.path("finalPrice") ||
+  !registeredCampaignPath ||
+  registeredCampaignPath.options.ref !== "Campaign" ||
   !(registeredVideoUrlPattern instanceof RegExp) ||
   registeredVideoUrlPattern.source !== VIDEO_URL_PATTERN.source ||
   registeredStatusValues.length !== LEAD_STATUSES.length ||

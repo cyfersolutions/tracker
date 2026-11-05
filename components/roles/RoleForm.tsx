@@ -2,15 +2,13 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ALL_PERMISSIONS, type Permission } from "@/lib/permissions";
-import { ROLE_TYPES, type RoleType } from "@/lib/role-types";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { StyledSelect } from "@/components/ui/StyledSelect";
+import { ROLE_PERMISSIONS, type Permission } from "@/lib/permissions";
+import type { RoleType } from "@/lib/role-types";
 
 const groups = [
-  { label: "Leads", permissions: ALL_PERMISSIONS.filter((permission) => permission.startsWith("leads:")) },
-  { label: "Roles", permissions: ALL_PERMISSIONS.filter((permission) => permission.startsWith("roles:")) },
-  { label: "Users", permissions: ALL_PERMISSIONS.filter((permission) => permission.startsWith("users:")) },
+  { label: "Leads", permissions: ROLE_PERMISSIONS.filter((permission) => permission.startsWith("leads:")) },
+  { label: "Roles", permissions: ROLE_PERMISSIONS.filter((permission) => permission.startsWith("roles:")) },
+  { label: "Users", permissions: ROLE_PERMISSIONS.filter((permission) => permission.startsWith("users:")) },
 ];
 
 export function RoleForm({
@@ -20,11 +18,14 @@ export function RoleForm({
 }) {
   const router = useRouter();
   const [name, setName] = useState(initial?.name ?? "");
-  const [type, setType] = useState<RoleType>(initial?.type ?? "internal");
-  const [permissions, setPermissions] = useState<Permission[]>(initial?.permissions ?? []);
+  const type: RoleType = initial?.type ?? "internal";
+  const [permissions, setPermissions] = useState<Permission[]>(
+    (initial?.permissions ?? []).filter(
+      (permission): permission is Permission => permission !== "leads:topup",
+    ),
+  );
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
-  const [confirmingTypeChange, setConfirmingTypeChange] = useState(false);
 
   function toggle(permission: Permission) {
     setPermissions((current) =>
@@ -36,16 +37,10 @@ export function RoleForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (initial && type !== initial.type && !confirmingTypeChange) {
-      setConfirmingTypeChange(true);
-      return;
-    }
-    setConfirmingTypeChange(false);
     await save();
   }
 
   async function save() {
-    setConfirmingTypeChange(false);
     setPending(true);
     setError("");
     try {
@@ -59,7 +54,7 @@ export function RoleForm({
         setError(result.error ?? "Unable to save this role.");
         return;
       }
-      router.push(type === "client" ? "/clients" : "/roles");
+      router.push("/roles");
       router.refresh();
     } catch {
       setError("Unable to reach the server. Please try again.");
@@ -71,18 +66,6 @@ export function RoleForm({
   return (
     <form className="form-card stack-form" onSubmit={submit}>
       <label>Role name<input value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={80} required readOnly={initial?.name === "Super Admin"} /></label>
-      <label>Role type
-        <StyledSelect
-          value={type}
-          onChange={(value) => setType(value as RoleType)}
-          options={ROLE_TYPES.map((roleType) => ({ value: roleType, label: roleType === "client" ? "Client" : "Internal" }))}
-        />
-      </label>
-      {initial && (
-        <p className="muted">
-          Changing this role type moves every account assigned to it between the Clients and Users tabs.
-        </p>
-      )}
       <fieldset className="permission-fieldset">
         <legend>Permissions</legend>
         <p className="muted">
@@ -98,27 +81,12 @@ export function RoleForm({
                   <span>{permission}</span>
                 </label>
               ))}
-              {group.label === "Leads" && type === "client" && (
-                <p className="muted">
-                  Enable leads:view to let this client role see leads and their current prices.
-                </p>
-              )}
             </section>
           ))}
         </div>
       </fieldset>
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="form-actions"><button className="button button-primary" disabled={pending}>{pending ? "Saving..." : "Save role"}</button><button type="button" className="button button-secondary" onClick={() => router.back()}>Cancel</button></div>
-      {initial && (
-        <ConfirmDialog
-          open={confirmingTypeChange}
-          title="Change this role type?"
-          message={`Changing this role from ${initial.type === "client" ? "Client" : "Internal"} to ${type === "client" ? "Client" : "Internal"} will move every assigned account between the Clients and Users tabs.`}
-          confirmLabel="Change role type"
-          onCancel={() => setConfirmingTypeChange(false)}
-          onConfirm={() => void save()}
-        />
-      )}
     </form>
   );
 }

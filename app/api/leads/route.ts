@@ -15,6 +15,7 @@ import {
   removeUploadedLeadVideo,
 } from "@/lib/server/lead-video";
 import { getDefaultLeadPrice } from "@/lib/settings";
+import Campaign from "@/models/Campaign";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,7 @@ export const GET = withAuth("leads:view", async (request: NextRequest, _context,
     await connectToDatabase();
     const { page, limit, search, status } = parsed.data;
     const filter: Record<string, unknown> = {};
+    if (user.role.type === "client") filter.campaign = { $in: user.campaignIds ?? [] };
     if (status) filter.status = status;
     if (search) {
       const expression = new RegExp(escapeRegex(search), "i");
@@ -44,6 +46,7 @@ export const GET = withAuth("leads:view", async (request: NextRequest, _context,
       Lead.find(filter)
         .populate("assignedTo", "name email")
         .populate("createdBy", "name")
+        .populate("campaign", "name")
         .sort({ createdAt: -1, _id: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -113,7 +116,11 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
     }
 
     await connectToDatabase();
-    const { assignedTo, ...leadData } = parsed.data;
+    const { assignedTo, campaign, ...leadData } = parsed.data;
+    if (campaign) {
+      const campaignRecord = await Campaign.findOne({ _id: campaign, isActive: true }).select("_id").lean();
+      if (!campaignRecord) return NextResponse.json({ error: "Campaign not found or inactive." }, { status: 400 });
+    }
     if (
       typeof body !== "object" ||
       body === null ||
@@ -152,6 +159,7 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
       ...leadData,
       finalPrice: getLeadTotalPrice({ basePrice: leadData.basePrice, topUps: [] }),
       assignedTo: assignedTo || null,
+      campaign: campaign || null,
       createdBy: user._id,
     });
     keepUploadedVideo = true;

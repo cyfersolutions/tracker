@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import "@/models/Lead";
 import "@/models/Role";
 import "@/models/User";
+import "@/models/Campaign";
 
 type MongooseCache = {
   conn: typeof mongoose | null;

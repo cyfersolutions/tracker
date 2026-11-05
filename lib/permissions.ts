@@ -2,6 +2,7 @@ export const ALL_PERMISSIONS = [
   "leads:view",
   "leads:create",
   "leads:edit",
+  "leads:topup",
   "leads:delete",
   "leads:export",
   "roles:view",
@@ -12,9 +13,17 @@ export const ALL_PERMISSIONS = [
   "users:create",
   "users:edit",
   "users:delete",
+  "campaigns:view",
+  "campaigns:create",
+  "campaigns:edit",
+  "campaigns:delete",
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];
+
+export const ROLE_PERMISSIONS = ALL_PERMISSIONS.filter(
+  (permission) => permission !== "leads:topup",
+) as Exclude<Permission, "leads:topup">[];
 
 export function toPlainPermissions(
   permissions: readonly Permission[],
