@@ -48,6 +48,7 @@ const leadSchema = new Schema(
             amount: { type: Number, required: true, min: 0.01, max: 10000000 },
             addedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
             addedAt: { type: Date, required: true, default: Date.now },
+            source: { type: String, trim: true, maxlength: 40, required: false },
           },
           { _id: true },
         ),
@@ -55,6 +56,7 @@ const leadSchema = new Schema(
       default: [],
     },
     closedAt: { type: Date, default: null },
+    lostReason: { type: String, default: "", trim: true, maxlength: 500 },
     notes: { type: String, default: "", maxlength: 10000 },
     status: {
       type: String,
@@ -80,6 +82,9 @@ if (models.Lead && (
   !models.Lead.schema.path("videoUrl") ||
   !models.Lead.schema.path("finalPrice") ||
   !registeredCampaignPath ||
+  !models.Lead.schema.path("lostReason") ||
+  !models.Lead.schema.path("topUps")?.schema?.path("source") ||
+  models.Lead.schema.path("topUps")?.schema?.path("source")?.options?.enum ||
   registeredCampaignPath.options.ref !== "Campaign" ||
   !(registeredVideoUrlPattern instanceof RegExp) ||
   registeredVideoUrlPattern.source !== VIDEO_URL_PATTERN.source ||

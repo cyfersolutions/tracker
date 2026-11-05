@@ -46,6 +46,17 @@ export const leadSchema = z.object({
   campaign: z.string().regex(/^[a-f\d]{24}$/i, "Choose a valid campaign.").nullable().optional(),
 });
 
+export const leadMoveSchema = z
+  .object({
+    status: z.enum(LEAD_STATUSES),
+    reason: z.string().trim().max(500).optional(),
+    topUpAmount: z.number().finite().min(0.01).max(10000000).multipleOf(0.01).optional(),
+  })
+  .refine((value) => value.status !== "LOST" || (value.reason?.length ?? 0) >= 3, {
+    message: "A reason of at least 3 characters is required to mark a lead as lost.",
+    path: ["reason"],
+  });
+
 export const leadQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(100000).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),

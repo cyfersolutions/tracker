@@ -40,20 +40,20 @@ export const POST = withAuth("leads:topup", async (request, context, user) => {
     };
     const existing = await Lead.findOne({
       ...leadAccessFilter,
-      status: { $ne: "CLOSED" },
+      status: { $ne: "WON" },
     }).select("basePrice finalPrice topUps");
     if (!existing) {
       const exists = await Lead.exists({ _id: id });
       if (!exists) return NextResponse.json({ error: "Lead not found." }, { status: 404 });
       return NextResponse.json(
-        { error: "Closed leads cannot receive price top-ups." },
+        { error: "Won leads cannot receive price top-ups." },
         { status: 409 },
       );
     }
 
     if (existing.finalPrice == null) {
       await Lead.updateOne(
-        { _id: id, status: { $ne: "CLOSED" }, finalPrice: { $exists: false } },
+        { _id: id, status: { $ne: "WON" }, finalPrice: { $exists: false } },
         {
           $set: {
             finalPrice: getLeadTotalPrice({
@@ -66,7 +66,7 @@ export const POST = withAuth("leads:topup", async (request, context, user) => {
     }
 
     const lead = await Lead.findOneAndUpdate(
-      { _id: id, status: { $ne: "CLOSED" } },
+      { _id: id, status: { $ne: "WON" } },
       {
         $push: { topUps: topUp },
         $inc: { finalPrice: parsed.data.amount },
@@ -78,7 +78,7 @@ export const POST = withAuth("leads:topup", async (request, context, user) => {
       const exists = await Lead.exists({ _id: id });
       if (!exists) return NextResponse.json({ error: "Lead not found." }, { status: 404 });
       return NextResponse.json(
-        { error: "Closed leads cannot receive price top-ups." },
+        { error: "Won leads cannot receive price top-ups." },
         { status: 409 },
       );
     }

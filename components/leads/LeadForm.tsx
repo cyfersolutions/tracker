@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { formatStatusLabel } from "@/lib/lead-pricing";
 import { LEAD_STATUSES, type LeadStatus } from "@/lib/permissions";
 import { useAppGuard } from "@/context/AppGuard";
 import { fromSquareFeet, toSquareFeet } from "@/lib/roof-size";
@@ -61,7 +62,7 @@ const emptyLead: LeadValues = {
   roofSize: 0,
   basePrice: 50,
   notes: "",
-  status: "NEW",
+  status: "WARM",
   assignedTo: null,
   campaign: null,
 };
@@ -166,7 +167,7 @@ export function LeadForm({
     Number(values.basePrice ?? 50) +
     (values.topUps ?? []).reduce((total, topUp) => total + topUp.amount, 0) +
     (initial &&
-    initial.status !== "CLOSED" &&
+    initial.status !== "WON" &&
     values.basePrice !== initial.basePrice &&
     (initial.basePrice ?? 50) > 0
       ? initial.basePrice ?? 50
@@ -215,8 +216,12 @@ export function LeadForm({
           <StyledSelect
             value={values.status}
             onChange={(value) => setField("status", value as LeadStatus)}
-            disabled={initial?.status === "CLOSED"}
-            options={LEAD_STATUSES.map((status) => ({ value: status, label: status }))}
+            disabled={initial?.status === "WON"}
+            options={LEAD_STATUSES.filter(
+              (status) =>
+                status === values.status ||
+                (status !== "LOST" && status !== "INSPECTION_AWAITING"),
+            ).map((status) => ({ value: status, label: formatStatusLabel(status) }))}
           />
         </label>
         <label className="span-two">Street address<input value={values.address.street} onChange={(e) => updateAddress("street", e.target.value)} required /></label>
@@ -243,13 +248,13 @@ export function LeadForm({
             step="0.01"
             value={values.basePrice ?? 50}
             onChange={(e) => setField("basePrice", Number(e.target.value))}
-            readOnly={initial?.status === "CLOSED"}
+            readOnly={initial?.status === "WON"}
             required
           />
           {initial?._id && (
             <span className="table-subtext">
               price after this update: {formatUsd(currentFinalPrice)}.
-              {initial.status === "CLOSED" ? " Price is locked because this lead is closed." : ""}
+              {initial.status === "WON" ? " Price is locked because this lead is won." : ""}
             </span>
           )}
         </label>}

@@ -44,7 +44,7 @@ export function SettingsForm({ defaultLeadPrice }: { defaultLeadPrice: number })
       <label>
         Default lead price (USD)
         <input type="number" min="0" max="10000000" step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} required />
-        <span className="table-subtext">This updates all open leads and applies to new leads. Closed leads remain unchanged. Existing top-ups are preserved.</span>
+        <span className="table-subtext">This updates all open leads and applies to new leads. Won leads remain unchanged. Existing top-ups are preserved.</span>
       </label>
       {error && <p className="form-error" role="alert">{error}</p>}
       {saved && <p className="form-success" role="status">{saved}</p>}

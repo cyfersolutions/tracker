@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "seed": "tsx scripts/seed.ts",
-    "migrate:lead-prices": "tsx scripts/migrate-lead-prices.ts"
+    "migrate:lead-prices": "tsx scripts/migrate-lead-prices.ts",
+    "migrate:lead-statuses": "tsx scripts/migrate-lead-statuses.ts"
   },
   "dependencies": {
     "@next/env": "^16.4.4",

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { leadSchema, leadTopUpSchema } from "@/lib/validations/lead.schema";
+import { leadMoveSchema, leadSchema, leadTopUpSchema } from "@/lib/validations/lead.schema";
 import { roleSchema } from "@/lib/validations/role.schema";
 import { createUserSchema } from "@/lib/validations/user.schema";
 import { fromSquareFeet, toSquareFeet } from "@/lib/roof-size";
@@ -31,15 +31,15 @@ const validLead = {
 test("lead input normalizes optional email and status", () => {
   const parsed = leadSchema.parse(validLead);
   assert.equal(parsed.email, "jordan@example.com");
-  assert.equal(parsed.status, "NEW");
+  assert.equal(parsed.status, "WARM");
   assert.equal(parsed.notes, "");
-  assert.equal(leadSchema.parse({ ...validLead, status: "contacted" }).status, "CONTACTED");
+  assert.equal(leadSchema.parse({ ...validLead, status: "followup" }).status, "FOLLOWUP");
   assert.equal(leadSchema.parse({ ...validLead, email: "" }).email, undefined);
 });
 
 test("lead input rejects invalid status, negative area, and incomplete address", () => {
   assert.equal(leadSchema.safeParse({ ...validLead, status: "pending" }).success, false);
-  assert.equal(leadSchema.safeParse({ ...validLead, status: "CLOSED" }).success, true);
+  assert.equal(leadSchema.safeParse({ ...validLead, status: "WON" }).success, true);
   assert.equal(leadSchema.safeParse({ ...validLead, roofSize: -10 }).success, false);
   assert.equal(
     leadSchema.safeParse({ ...validLead, address: { ...validLead.address, city: "" } }).success,
@@ -156,4 +156,34 @@ test("internal lead API payloads omit all price details", () => {
     assert.equal(canManageLeadPrice({ isSuperAdmin: false, role: { type: "internal" } }), false);
   });
   assert.deepEqual(visibleLead, { name: "Jordan Lee" });
+});
+
+test("only Warm and Hot leads are approvable for inspection", async () => {
+  const { isApprovableStatus } = await import("@/lib/lead-pricing");
+  assert.equal(isApprovableStatus("WARM"), true);
+  assert.equal(isApprovableStatus("HOT"), false);
+  assert.equal(isApprovableStatus("FOLLOWUP"), false);
+  assert.equal(isApprovableStatus("INSPECTION_AWAITING"), false);
+});
+
+test("moving a lead to Lost requires a reason", () => {
+  assert.equal(leadMoveSchema.safeParse({ status: "LOST" }).success, false);
+  assert.equal(leadMoveSchema.safeParse({ status: "LOST", reason: "  " }).success, false);
+  assert.equal(leadMoveSchema.safeParse({ status: "LOST", reason: "Not interested" }).success, true);
+  assert.equal(leadMoveSchema.safeParse({ status: "FOLLOWUP" }).success, true);
+});
+
+test("moving a Warm lead to inspection, contract or won requires approval", async () => {
+  const { requiresApproval } = await import("@/lib/lead-pricing");
+  for (const target of ["INSPECTION_AWAITING", "CONTRACT_SIGNING", "WON"]) {
+    assert.equal(requiresApproval("WARM", target), true);
+    assert.equal(requiresApproval("FOLLOWUP", target), false);
+  }
+  assert.equal(requiresApproval("WARM", "FOLLOWUP"), false);
+  assert.equal(requiresApproval("WARM", "LOST"), false);
+});
+
+test("move payload validates the Won top-up amount", () => {
+  assert.equal(leadMoveSchema.safeParse({ status: "WON", topUpAmount: 25 }).success, true);
+  assert.equal(leadMoveSchema.safeParse({ status: "WON", topUpAmount: 0 }).success, false);
 });

@@ -32,12 +32,12 @@ export function toPlainPermissions(
 }
 
 export const LEAD_STATUSES = [
-  "NEW",
-  "CONTACTED",
-  "QUALIFIED",
+  "WARM",
+  "INSPECTION_AWAITING",
+  "CONTRACT_SIGNING",
+  "WON",
   "LOST",
-  "CONVERTED",
-  "CLOSED",
+  "FOLLOWUP",
 ] as const;
 
 export type LeadStatus = (typeof LEAD_STATUSES)[number];

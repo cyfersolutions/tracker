@@ -121,19 +121,28 @@ export const PUT = withAuth("leads:edit", async (request, context, user) => {
         { status: 400 },
       );
     }
+    if (
+      (parsed.data.status === "INSPECTION_AWAITING" || parsed.data.status === "LOST") &&
+      existing.status !== parsed.data.status
+    ) {
+      return NextResponse.json(
+        { error: "Use the lead board to accept a Warm lead for inspection or to mark a lead as lost with a reason." },
+        { status: 400 },
+      );
+    }
     const previousBasePrice = existing.basePrice ?? 50;
     const nextBasePrice = canManageLeadPrice(user) ? parsed.data.basePrice : previousBasePrice;
     if (
-      existing.status === "CLOSED" &&
-      (parsed.data.status !== "CLOSED" || nextBasePrice !== previousBasePrice)
+      existing.status === "WON" &&
+      (parsed.data.status !== "WON" || nextBasePrice !== previousBasePrice)
     ) {
       return NextResponse.json(
-        { error: "Closed leads cannot be reopened or have their price changed." },
+        { error: "Won leads cannot be reopened or have their price changed." },
         { status: 409 },
       );
     }
     const previousPriceAdjustment =
-      existing.status === "CLOSED"
+      existing.status === "WON"
         ? null
         : getPreviousBasePriceAdjustment(previousBasePrice, nextBasePrice);
     const priceHistory = [
@@ -150,7 +159,7 @@ export const PUT = withAuth("leads:edit", async (request, context, user) => {
         topUps: priceHistory,
       }),
     };
-    if (parsed.data.status === "CLOSED" && existing.status !== "CLOSED") {
+    if (parsed.data.status === "WON" && existing.status !== "WON") {
       set.closedAt = new Date();
     }
     const update: Record<string, unknown> = { $set: set };
@@ -166,16 +175,16 @@ export const PUT = withAuth("leads:edit", async (request, context, user) => {
       };
     }
     const lead = await Lead.findOneAndUpdate(
-      existing.status === "CLOSED"
+      existing.status === "WON"
         ? {
             _id: id,
-            status: "CLOSED",
+            status: "WON",
             basePrice: existing.basePrice ?? null,
             finalPrice: existing.finalPrice ?? null,
           }
         : {
             _id: id,
-            status: { $ne: "CLOSED" },
+            status: { $ne: "WON" },
             basePrice: existing.basePrice ?? null,
             finalPrice: existing.finalPrice ?? null,
           },
@@ -185,8 +194,8 @@ export const PUT = withAuth("leads:edit", async (request, context, user) => {
     if (!lead) {
       const current = await Lead.findById(id).select("status");
       if (!current) return NextResponse.json({ error: "Lead not found." }, { status: 404 });
-      if (current.status === "CLOSED") {
-        return NextResponse.json({ error: "Closed leads cannot be reopened." }, { status: 409 });
+      if (current.status === "WON") {
+        return NextResponse.json({ error: "Won leads cannot be reopened." }, { status: 409 });
       }
       return NextResponse.json(
         { error: "This lead changed while you were editing it. Reload and try again." },

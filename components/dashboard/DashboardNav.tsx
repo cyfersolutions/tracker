@@ -4,7 +4,7 @@ import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useAppGuard } from "@/context/AppGuard";
-import { ClientCampaignNav } from "@/components/dashboard/ClientCampaignNav";
+import { CampaignSelector, ClientCampaignNav } from "@/components/dashboard/ClientCampaignNav";
 
 export function DashboardNav() {
   const { data: session } = useSession();
@@ -13,7 +13,7 @@ export function DashboardNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isClient = session?.user?.accountType === "client";
-  if (isClient && !searchParams.get("campaign")) return null;
+  if (isClient && !searchParams.get("campaign")) return <CampaignSelector headless />;
 
   function navLink(href: string, label: string) {
     const active =

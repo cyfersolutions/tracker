@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 
 type Campaign = { id: string; name: string };
 
-export function CampaignSelector({ inline = false }: { inline?: boolean }) {
+export function CampaignSelector({ inline = false, headless = false }: { inline?: boolean; headless?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -42,6 +42,8 @@ export function CampaignSelector({ inline = false }: { inline?: boolean }) {
     params.delete("page");
     router.push(`${pathname}${params.toString() ? `?${params}` : ""}`);
   }
+
+  if (headless) return null;
 
   return <div className={inline ? "campaign-selector-inline" : "client-campaign-picker"}>
     {!inline && <label htmlFor="client-campaign">Campaign</label>}
@@ -125,8 +127,11 @@ export function ClientCampaignNav({ showSelector = true }: { showSelector?: bool
           <Link href={`/dashboard?campaign=${encodeURIComponent(selectedCampaign)}`} aria-current={pathname === "/dashboard" ? "page" : undefined}>
             Overview
           </Link>
-          <Link className="client-leads-link" href={`/leads?campaign=${encodeURIComponent(selectedCampaign)}`} aria-current={pathname.startsWith("/leads") ? "page" : undefined}>
+          <Link className="client-leads-link" href={`/leads?campaign=${encodeURIComponent(selectedCampaign)}`} aria-current={pathname === "/leads" || (pathname.startsWith("/leads/") && !pathname.startsWith("/leads/board")) ? "page" : undefined}>
             Leads
+          </Link>
+          <Link className="client-leads-link" href={`/leads/board?campaign=${encodeURIComponent(selectedCampaign)}`} aria-current={pathname.startsWith("/leads/board") ? "page" : undefined}>
+            Lead board
           </Link>
         </div>
       )}

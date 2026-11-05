@@ -8,6 +8,7 @@ import Lead from "@/models/Lead";
 import { LeadTopUpForm } from "@/components/leads/LeadTopUpForm";
 import {
   canManageLeadPrice,
+  formatStatusLabel,
   formatUsd,
   getLeadTotalPrice,
 } from "@/lib/lead-pricing";
@@ -39,6 +40,7 @@ export default async function LeadDetailPage({
     ? await User.find({ _id: { $in: creatorIds } }).select("name").lean().exec()
     : [];
   const creatorNames = new Map(creators.map((creator) => [String(creator._id), creator.name]));
+  const campaignQuery = user.role.type === "client" && lead.campaign ? `?campaign=${String(lead.campaign)}` : "";
   const canEdit = user.isSuperAdmin || user.role.permissions.includes("leads:edit");
   const canDelete = user.isSuperAdmin || user.role.permissions.includes("leads:delete");
   const canViewFinalPrice = canManageLeadPrice(user);
@@ -47,7 +49,7 @@ export default async function LeadDetailPage({
     (user.isSuperAdmin ||
       user.role.permissions.includes("leads:edit") ||
       user.role.permissions.includes("leads:topup")) &&
-    lead.status !== "CLOSED";
+    lead.status !== "WON";
   const totalPrice =
     lead.finalPrice ??
     getLeadTotalPrice({ basePrice: lead.basePrice ?? 50, topUps: lead.topUps ?? [] });
@@ -57,15 +59,16 @@ export default async function LeadDetailPage({
       <header className="page-heading">
         <div><p className="eyebrow">LEAD DETAILS</p><h1>{lead.name}</h1><p className="muted">{lead.email} · {lead.phone}</p></div>
         <div className="heading-actions">
-          {canEdit && <Link className="button button-secondary" href={`/leads/${id}/edit`}>Edit lead</Link>}
+          {canEdit && <Link className="button button-secondary" href={`/leads/${id}/edit${campaignQuery}`}>Edit lead</Link>}
           {canDelete && <DeleteLeadButton id={id} />}
-          <Link className="text-link" href="/leads">Back</Link>
+          <Link className="text-link" href={`/leads${campaignQuery}`}>Back</Link>
         </div>
       </header>
       <section className="detail-card">
         <h2>Lead information</h2>
         <dl className="detail-grid">
-          <div><dt>Status</dt><dd><span className={`status-badge status-${lead.status}`}>{lead.status}</span></dd></div>
+          <div><dt>Status</dt><dd><span className={`status-badge status-${lead.status}`}>{formatStatusLabel(lead.status)}</span></dd></div>
+          {lead.status === "LOST" && <div className="span-two"><dt>Lost reason</dt><dd>{lead.lostReason || "No reason recorded"}</dd></div>}
           {canViewFinalPrice && <div><dt>Final price</dt><dd className="price-total">{formatUsd(totalPrice)}</dd></div>}
           {canViewFinalPrice && <div><dt>Starting price</dt><dd>{formatUsd(lead.basePrice ?? 50)}</dd></div>}
           <div className="span-two"><dt>Video</dt><dd>{lead.videoUrl ? <a className="text-link" href={lead.videoUrl} target="_blank" rel="noopener noreferrer">Open video</a> : "No file uploaded"}</dd></div>
@@ -121,8 +124,8 @@ export default async function LeadDetailPage({
             canSeeFinalPrice={canViewFinalPrice}
           />
         )}
-        {lead.status === "CLOSED" && (
-          <p className="closed-notice">This lead is closed. Further price changes and top-ups are disabled.</p>
+        {lead.status === "WON" && (
+          <p className="closed-notice">This lead is won. Further price changes and top-ups are disabled.</p>
         )}
       </section>
     </div>

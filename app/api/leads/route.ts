@@ -103,6 +103,13 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
       );
     }
 
+    if (parsed.data.status === "INSPECTION_AWAITING" || parsed.data.status === "LOST") {
+      return NextResponse.json(
+        { error: "Leads cannot be created as Inspection Awaiting or Lost." },
+        { status: 400 },
+      );
+    }
+
     if (
       !canManageLeadPrice(user) &&
       typeof body === "object" &&

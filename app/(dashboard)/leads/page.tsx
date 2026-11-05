@@ -7,6 +7,7 @@ import { LeadStatusFilter } from "@/components/leads/LeadStatusFilter";
 import { Types } from "mongoose";
 import {
   canManageLeadPrice,
+  formatStatusLabel,
   formatUsd,
   getLeadTotalPrice,
 } from "@/lib/lead-pricing";
@@ -51,6 +52,7 @@ export default async function LeadsPage({
   const canCreate = user.isSuperAdmin || user.role.permissions.includes("leads:create");
   const canExport = user.isSuperAdmin || user.role.permissions.includes("leads:export");
   const canViewFinalPrice = canManageLeadPrice(user);
+  const campaignQuery = selectedCampaign ? `?campaign=${selectedCampaign}` : "";
   const makePageUrl = (page: number) => {
     const params = new URLSearchParams();
     if (filters.search) params.set("search", filters.search);
@@ -65,8 +67,9 @@ export default async function LeadsPage({
       <header className="page-heading">
         <div><p className="eyebrow">PIPELINE</p><h1>Leads</h1><p className="muted">{total} lead{total === 1 ? "" : "s"}{selectedCampaign ? " in the selected campaign" : " in your workspace"}</p></div>
         <div className="heading-actions">
+          <Link className="button button-secondary" href={selectedCampaign ? `/leads/board?campaign=${selectedCampaign}` : "/leads/board"}>Board view</Link>
           {canExport && <a className="button button-secondary" href={`/api/leads/export?${new URLSearchParams({ ...(filters.search ? { search: filters.search } : {}), ...(filters.status ? { status: filters.status } : {}), ...(selectedCampaign ? { campaign: selectedCampaign } : {}) })}`}>Export CSV</a>}
-          {canCreate && <Link className="button button-primary" href="/leads/new">Add lead</Link>}
+          {canCreate && <Link className="button button-primary" href={`/leads/new${campaignQuery}`}>Add lead</Link>}
         </div>
       </header>
       <form className="filter-bar" action="/leads">
@@ -82,10 +85,10 @@ export default async function LeadsPage({
             <thead><tr><th>Name</th><th>Contact</th><th>Campaign</th><th>Status</th>{canViewFinalPrice && <th>Price</th>}<th>Call Transfered To</th><th>Created</th><th><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>{leads.map((lead) => (
               <tr key={String(lead._id)}>
-                <td><Link className="table-primary-link" href={`/leads/${lead._id}`}>{lead.name}</Link><span className="table-subtext">{lead.address.city}, {lead.address.country}</span></td>
+                <td><Link className="table-primary-link" href={`/leads/${lead._id}${campaignQuery}`}>{lead.name}</Link><span className="table-subtext">{lead.address.city}, {lead.address.country}</span></td>
                 <td>{lead.email}<span className="table-subtext">{lead.phone}</span></td>
                 <td>{typeof lead.campaign === "object" && lead.campaign ? lead.campaign.name : "None"}</td>
-                <td><span className={`status-badge status-${lead.status}`}>{lead.status}</span></td>
+                <td><span className={`status-badge status-${lead.status}`}>{formatStatusLabel(lead.status)}</span></td>
                 {canViewFinalPrice && (
                   <td>
                     <strong>
@@ -98,7 +101,7 @@ export default async function LeadsPage({
                 )}
                 <td>{typeof lead.assignedTo === "object" && lead.assignedTo ? lead.assignedTo.name : "—"}</td>
                 <td>{new Date(lead.createdAt).toLocaleDateString()}</td>
-                <td><Link className="text-link" href={`/leads/${lead._id}`}>View</Link></td>
+                <td><Link className="text-link" href={`/leads/${lead._id}${campaignQuery}`}>View</Link></td>
               </tr>
             ))}</tbody>
           </table></div>

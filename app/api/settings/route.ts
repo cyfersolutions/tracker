@@ -36,7 +36,7 @@ export const PUT = withAuth(null, async (request, _context, user) => {
     ).lean();
     const { defaultLeadPrice } = parsed.data;
     const updatedLeads = await Lead.updateMany(
-      { status: { $ne: "CLOSED" } },
+      { status: { $ne: "WON" } },
       [
         {
           $set: {
