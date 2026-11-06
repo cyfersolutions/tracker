@@ -44,24 +44,30 @@ export const GET = withAuth("leads:export", async (request: NextRequest, _contex
       .exec();
     const canExportPrices = canManageLeadPrice(user);
     const headers = [
-      "Name", "Email", "Phone", "Video", "Street", "City", "State", "Country",
-      "Postal code", "Roof size (sq ft)", "Status",
+      "Type", "Name", "Email", "Phone", "MC Number", "State", "OTR", "Truck Type", "Trucks", "Revenue (USD)",
+      "Roof size (sq ft)", "Street", "City", "Country", "Postal code", "Video", "Status",
       ...(canExportPrices ? ["Base price (USD)", "price (USD)"] : []),
       "Assigned to", "Created at",
     ];
     const rows = [
       headers,
       ...leads.map((lead) => [
+        lead.leadType || "Roofing",
         lead.name,
         lead.email,
         lead.phone,
-        lead.videoUrl,
-        lead.address.street,
-        lead.address.city,
-        lead.address.state,
-        lead.address.country,
-        lead.address.postalCode,
-        lead.roofSize,
+        lead.mcNumber || "",
+        lead.address?.state || "",
+        lead.otr || "",
+        lead.truckType || "",
+        lead.trucks ?? "",
+        lead.revenue ?? "",
+        lead.roofSize ?? "",
+        lead.address?.street || "",
+        lead.address?.city || "",
+        lead.address?.country || "",
+        lead.address?.postalCode || "",
+        lead.videoUrl || "",
         lead.status,
         ...(canExportPrices
           ? [

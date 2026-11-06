@@ -37,11 +37,11 @@ export const PATCH = withAuth("leads:view", async (request, context, user) => {
       ? { _id: id, campaign: { $in: user.campaignIds ?? [] } }
       : { _id: id };
     const existing = await Lead.findOne(accessFilter).select(
-      "status basePrice finalPrice topUps",
+      "status basePrice finalPrice topUps lostReason",
     );
     if (!existing) return NextResponse.json({ error: "Lead not found." }, { status: 404 });
 
-    if (existing.status === target) {
+    if (existing.status === target && (!parsed.data.reason || existing.lostReason === parsed.data.reason)) {
       return NextResponse.json({ success: true, status: target, approved: false });
     }
     if (existing.status === "WON") {
@@ -53,7 +53,10 @@ export const PATCH = withAuth("leads:view", async (request, context, user) => {
 
     const set: Record<string, unknown> = {
       status: target,
-      lostReason: target === "LOST" ? parsed.data.reason : "",
+      lostReason:
+        target === "LOST" || target === "FOLLOWUP"
+          ? (parsed.data.reason?.trim() || existing.lostReason || "")
+          : "",
     };
     const update: Record<string, unknown> = { $set: set };
     let approved = false;

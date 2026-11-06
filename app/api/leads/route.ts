@@ -69,12 +69,35 @@ export const GET = withAuth("leads:view", async (request: NextRequest, _context,
 });
 
 export const POST = withAuth("leads:create", async (request, _context, user) => {
-  let uploadedVideoPath: string | undefined;
+  const uploadedFilePaths: string[] = [];
   let keepUploadedVideo = false;
   try {
-    const canAssign = user.isSuperAdmin || user.role.permissions.includes("leads:edit");
+    const canAssign =
+      user.isSuperAdmin ||
+      user.role.permissions.includes("leads:edit") ||
+      user.role.permissions.includes("leads:create");
     const submission = await readLeadSubmission(request);
-    uploadedVideoPath = submission.file?.path;
+    if (submission.file?.path) uploadedFilePaths.push(submission.file.path);
+    if (submission.documentFiles) {
+      uploadedFilePaths.push(...submission.documentFiles.map((doc) => doc.path));
+    }
+
+    const newDocuments = (submission.documentFiles ?? []).map((doc) => ({
+      name: doc.originalName,
+      url: doc.url,
+      size: doc.size,
+      uploadedAt: new Date(),
+    }));
+
+    const rawDocs =
+      typeof submission.body === "object" &&
+      submission.body !== null &&
+      "documents" in submission.body &&
+      Array.isArray((submission.body as { documents?: unknown }).documents)
+        ? ((submission.body as { documents: unknown[] }).documents)
+        : [];
+    const submittedDocs: unknown[] = rawDocs;
+
     const submittedBody =
       typeof submission.body === "object" &&
       submission.body !== null &&
@@ -82,30 +105,32 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
         ? {
             ...submission.body,
             ...(submission.file ? { videoUrl: submission.file.videoUrl } : {}),
+            documents: [...submittedDocs, ...newDocuments],
           }
         : submission.body;
-    const body =
-      typeof submittedBody === "object" &&
-      submittedBody !== null &&
-      !Array.isArray(submittedBody) &&
-      !canAssign &&
-      user.role.type !== "client" &&
-      (!("assignedTo" in submittedBody) ||
-        submittedBody.assignedTo === null ||
-        submittedBody.assignedTo === "")
-          ? { ...submittedBody, assignedTo: String(user._id) }
-          : submittedBody;
+    const body = submittedBody;
     const parsed = leadSchema.safeParse(body);
     if (!parsed.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const pathKey = issue.path.join(".");
+        if (pathKey && !fieldErrors[pathKey]) {
+          fieldErrors[pathKey] = issue.message;
+        }
+      }
+      const firstErrorMessage = parsed.error.issues[0]?.message || "Invalid lead data.";
       return NextResponse.json(
-        { error: "Invalid lead data.", details: parsed.error.flatten() },
+        { error: firstErrorMessage, fieldErrors, details: parsed.error.flatten() },
         { status: 400 },
       );
     }
 
     if (parsed.data.status === "INSPECTION_AWAITING" || parsed.data.status === "LOST") {
       return NextResponse.json(
-        { error: "Leads cannot be created as Inspection Awaiting or Lost." },
+        {
+          error: "Leads cannot be created as Inspection Awaiting or Lost.",
+          fieldErrors: { status: "Leads cannot be created as Inspection Awaiting or Lost." },
+        },
         { status: 400 },
       );
     }
@@ -124,9 +149,18 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
 
     await connectToDatabase();
     const { assignedTo, campaign, ...leadData } = parsed.data;
+    let campaignRecord: { _id: unknown; type?: "Roofing" | "Trucking"; clientIds?: unknown[] } | null = null;
     if (campaign) {
-      const campaignRecord = await Campaign.findOne({ _id: campaign, isActive: true }).select("_id").lean();
-      if (!campaignRecord) return NextResponse.json({ error: "Campaign not found or inactive." }, { status: 400 });
+      campaignRecord = await Campaign.findOne({ _id: campaign, isActive: true }).select("_id type clientIds").lean();
+      if (!campaignRecord) {
+        return NextResponse.json(
+          { error: "Campaign not found or inactive.", fieldErrors: { campaign: "Campaign not found or inactive." } },
+          { status: 400 },
+        );
+      }
+      if (campaignRecord.type) {
+        leadData.leadType = campaignRecord.type;
+      }
     }
     if (
       typeof body !== "object" ||
@@ -137,28 +171,53 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
     }
     if (assignedTo && !canAssign) {
       return NextResponse.json(
-        { error: "The leads:edit permission is required to assign a lead." },
+        {
+          error: "The leads:create or leads:edit permission is required to assign a lead.",
+          fieldErrors: { assignedTo: "Permission required to assign a lead." },
+        },
         { status: 403 },
       );
     }
     if (assignedTo) {
       const assignee = await User.findOne({ _id: assignedTo, isActive: true })
         .populate("role", "type")
-        .select("_id role")
+        .select("_id role campaignIds")
         .lean();
       if (!assignee) {
-        return NextResponse.json({ error: "Assignee not found or inactive." }, { status: 400 });
+        return NextResponse.json(
+          { error: "Client not found or inactive.", fieldErrors: { assignedTo: "Client not found or inactive." } },
+          { status: 400 },
+        );
       }
       if (
         !assignee.role ||
-        typeof assignee.role === "object" &&
-        "type" in assignee.role &&
-        assignee.role.type === "client"
+        typeof assignee.role !== "object" ||
+        !("type" in assignee.role) ||
+        assignee.role.type !== "client"
       ) {
         return NextResponse.json(
-          { error: "Leads can only be assigned to internal users." },
+          {
+            error: "Calls can only be transferred to client users, not internal users.",
+            fieldErrors: { assignedTo: "Calls can only be transferred to client users, not internal users." },
+          },
           { status: 400 },
         );
+      }
+      if (campaignRecord) {
+        const isClientInCampaign =
+          (campaignRecord.clientIds ?? []).some((id) => String(id) === String(assignedTo)) ||
+          ((assignee as { campaignIds?: unknown[] }).campaignIds ?? []).some(
+            (id: unknown) => String(id) === String(campaign),
+          );
+        if (!isClientInCampaign) {
+          return NextResponse.json(
+            {
+              error: "The selected client is not assigned to this campaign.",
+              fieldErrors: { assignedTo: "The selected client is not assigned to this campaign." },
+            },
+            { status: 400 },
+          );
+        }
       }
     }
 
@@ -177,11 +236,13 @@ export const POST = withAuth("leads:create", async (request, _context, user) => 
     }
     return apiError(error);
   } finally {
-    if (uploadedVideoPath && !keepUploadedVideo) {
-      try {
-        await removeUploadedLeadVideo(uploadedVideoPath);
-      } catch (error) {
-        console.error("Could not remove an unsuccessful lead video upload.", error);
+    if (!keepUploadedVideo && uploadedFilePaths.length > 0) {
+      for (const filePath of uploadedFilePaths) {
+        try {
+          await removeUploadedLeadVideo(filePath);
+        } catch (error) {
+          console.error("Could not remove an unsuccessful file upload.", error);
+        }
       }
     }
   }

@@ -13,12 +13,33 @@ const videoDirectory = () =>
   );
 const videoUrlPrefix = "/api/leads/videos/";
 const contentTypes: Record<string, string> = {
+  // Video
   ".avi": "video/x-msvideo",
   ".m4v": "video/x-m4v",
   ".mkv": "video/x-matroska",
   ".mov": "video/quicktime",
   ".mp4": "video/mp4",
   ".webm": "video/webm",
+  // Audio
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".ogg": "audio/ogg",
+  ".m4a": "audio/mp4",
+  ".aac": "audio/aac",
+  ".flac": "audio/flac",
+  ".weba": "audio/webm",
+  // Documents & Images
+  ".pdf": "application/pdf",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".txt": "text/plain",
+  ".csv": "text/csv",
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 };
 
 export class LeadVideoUploadError extends Error {
@@ -35,6 +56,14 @@ export type UploadedLeadVideo = {
   filename: string;
   path: string;
   videoUrl: string;
+};
+
+export type UploadedLeadDocument = {
+  originalName: string;
+  filename: string;
+  path: string;
+  url: string;
+  size: number;
 };
 
 const uploader = multer({
@@ -56,15 +85,16 @@ const uploader = multer({
   }),
   limits: {
     fileSize: 250 * 1024 * 1024,
-    files: 1,
-    fields: 1,
-    parts: 2,
+    files: 25,
+    fields: 10,
+    parts: 35,
   },
 });
 
 export async function readLeadSubmission(request: NextRequest): Promise<{
   body: unknown;
   file?: UploadedLeadVideo;
+  documentFiles?: UploadedLeadDocument[];
 }> {
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("multipart/form-data")) {
     return { body: await request.json() };
@@ -87,7 +117,7 @@ export async function readLeadSubmission(request: NextRequest): Promise<{
 
   try {
     await new Promise<void>((resolve, reject) => {
-      uploader.single("video")(multerRequest, {} as Response, (error?: unknown) => {
+      uploader.any()(multerRequest, {} as Response, (error?: unknown) => {
         if (error) reject(error);
         else resolve();
       });
@@ -95,14 +125,20 @@ export async function readLeadSubmission(request: NextRequest): Promise<{
   } catch (error) {
     if (error instanceof multer.MulterError) {
       if (error.code === "LIMIT_FILE_SIZE") {
-        throw new LeadVideoUploadError("Videos must be 250 MB or smaller.", 413);
+        throw new LeadVideoUploadError("Files must be 250 MB or smaller.", 413);
       }
-      throw new LeadVideoUploadError("The video upload request is invalid.");
+      throw new LeadVideoUploadError("The file upload request is invalid.");
     }
     throw error;
   }
 
-  const file = multerRequest.file;
+  const files = (multerRequest as unknown as { files?: Express.Multer.File[] }).files ?? [];
+  const singleFile = multerRequest.file;
+  const allFiles: Express.Multer.File[] = singleFile ? [singleFile, ...files] : files;
+
+  const videoFile = allFiles.find((f) => f.fieldname === "video" || f.fieldname === "audio");
+  const documentFiles = allFiles.filter((f) => f.fieldname === "documents" || f.fieldname === "document");
+
   try {
     if (!multerRequest.body) {
       throw new LeadVideoUploadError("The upload request could not be processed.");
@@ -119,18 +155,31 @@ export async function readLeadSubmission(request: NextRequest): Promise<{
     }
     return {
       body,
-      ...(file
+      ...(videoFile
         ? {
             file: {
-              filename: file.filename,
-              path: file.path,
-              videoUrl: `${videoUrlPrefix}${file.filename}`,
+              filename: videoFile.filename,
+              path: videoFile.path,
+              videoUrl: `${videoUrlPrefix}${videoFile.filename}`,
             },
+          }
+        : {}),
+      ...(documentFiles.length > 0
+        ? {
+            documentFiles: documentFiles.map((doc) => ({
+              originalName: doc.originalname,
+              filename: doc.filename,
+              path: doc.path,
+              url: `${videoUrlPrefix}${doc.filename}`,
+              size: doc.size,
+            })),
           }
         : {}),
     };
   } catch (error) {
-    if (file) await removeUploadedLeadVideo(file.path);
+    for (const file of allFiles) {
+      await removeUploadedLeadVideo(file.path);
+    }
     throw error;
   }
 }

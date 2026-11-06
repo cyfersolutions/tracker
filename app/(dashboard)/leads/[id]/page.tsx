@@ -26,9 +26,11 @@ export default async function LeadDetailPage({
   const lead = await Lead.findById(id)
     .populate("assignedTo", "name email")
     .populate("createdBy", "name")
+    .populate("campaign", "name type")
     .lean();
   if (!lead) notFound();
-  if (user.role.type === "client" && (!lead.campaign || !(user.campaignIds ?? []).some((campaignId: unknown) => String(campaignId) === String(lead.campaign)))) notFound();
+  const leadCampaignId = typeof lead.campaign === "object" && lead.campaign ? String((lead.campaign as { _id?: unknown })._id) : String(lead.campaign ?? "");
+  if (user.role.type === "client" && (!leadCampaignId || !(user.campaignIds ?? []).some((campaignId: unknown) => String(campaignId) === leadCampaignId))) notFound();
   const creatorIds = [
     ...new Set(
       ((lead.topUps ?? []) as Array<{ addedBy: Types.ObjectId | null }>).map(
@@ -68,16 +70,73 @@ export default async function LeadDetailPage({
         <h2>Lead information</h2>
         <dl className="detail-grid">
           <div><dt>Status</dt><dd><span className={`status-badge status-${lead.status}`}>{formatStatusLabel(lead.status)}</span></dd></div>
+          <div><dt>Campaign</dt><dd>{typeof lead.campaign === "object" && lead.campaign ? `${lead.campaign.name} (${(lead.campaign as { type?: string }).type || "Roofing"})` : "None"}</dd></div>
+          <div><dt>Lead Type</dt><dd><span className="status-badge" style={{ textTransform: "none" }}>{lead.leadType || "Roofing"}</span></dd></div>
           {lead.status === "LOST" && <div className="span-two"><dt>Lost reason</dt><dd>{lead.lostReason || "No reason recorded"}</dd></div>}
           {canViewFinalPrice && <div><dt>Final price</dt><dd className="price-total">{formatUsd(totalPrice)}</dd></div>}
           {canViewFinalPrice && <div><dt>Starting price</dt><dd>{formatUsd(lead.basePrice ?? 50)}</dd></div>}
-          <div className="span-two"><dt>Video</dt><dd>{lead.videoUrl ? <a className="text-link" href={lead.videoUrl} target="_blank" rel="noopener noreferrer">Open video</a> : "No file uploaded"}</dd></div>
-          <div><dt>Roof size</dt><dd>{lead.roofSize.toLocaleString()} sq ft</dd></div>
-          <div><dt>Street</dt><dd>{lead.address.street}</dd></div>
-          <div><dt>City</dt><dd>{lead.address.city}</dd></div>
-          <div><dt>State</dt><dd>{lead.address.state}</dd></div>
-          <div><dt>Country</dt><dd>{lead.address.country}</dd></div>
-          <div><dt>Postal code</dt><dd>{lead.address.postalCode}</dd></div>
+          {lead.leadType === "Trucking" ? (
+            <>
+              <div><dt>MC Number</dt><dd><strong style={{ color: "var(--primary)", fontSize: "15px" }}>{lead.mcNumber || "—"}</strong></dd></div>
+              <div><dt>State</dt><dd>{lead.address?.state || "—"}</dd></div>
+              <div><dt>OTR (Over The Road)</dt><dd>{lead.otr || "Yes"}</dd></div>
+              <div><dt>Truck Type</dt><dd>{lead.truckType || "—"}</dd></div>
+              <div><dt>Trucks</dt><dd>{lead.trucks ?? "—"}</dd></div>
+              <div><dt>Revenue</dt><dd>{lead.revenue ? formatUsd(lead.revenue) : "—"}</dd></div>
+            </>
+          ) : (
+            <>
+              <div><dt>Roof size</dt><dd>{lead.roofSize.toLocaleString()} sq ft</dd></div>
+              <div><dt>Street</dt><dd>{lead.address.street}</dd></div>
+              <div><dt>City</dt><dd>{lead.address.city}</dd></div>
+              <div><dt>State</dt><dd>{lead.address.state}</dd></div>
+              <div><dt>Country</dt><dd>{lead.address.country}</dd></div>
+              <div><dt>Postal code</dt><dd>{lead.address.postalCode}</dd></div>
+            </>
+          )}
+          {lead.leadType === "Trucking" ? (
+            <div className="span-two">
+              <dt>Documents ({lead.documents?.length ?? 0})</dt>
+              <dd>
+                {lead.documents && lead.documents.length > 0 ? (
+                  <ul style={{ listStyle: "none", padding: 0, margin: "6px 0 0", display: "grid", gap: "8px" }}>
+                    {lead.documents.map((doc: { _id?: unknown; name: string; url: string; size?: number }, idx: number) => (
+                      <li key={String(doc._id || idx)} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span>📄</span>
+                        <a className="text-link" href={doc.url} target="_blank" rel="noopener noreferrer">
+                          {doc.name || `Document ${idx + 1}`}
+                        </a>
+                        {doc.size ? <span className="muted" style={{ fontSize: "11px" }}>({Math.round(doc.size / 1024)} KB)</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className="muted">No documents uploaded</span>
+                )}
+              </dd>
+            </div>
+          ) : (
+            <div className="span-two">
+              <dt>Voice recording (Audio)</dt>
+              <dd style={{ display: "grid", gap: "8px", marginTop: "4px" }}>
+                {lead.videoUrl ? (
+                  <>
+                    <audio controls preload="metadata" style={{ width: "100%", maxWidth: "480px" }}>
+                      <source src={lead.videoUrl} />
+                      Your browser does not support audio playback.
+                    </audio>
+                    <div>
+                      <a className="text-link" href={lead.videoUrl} target="_blank" rel="noopener noreferrer">
+                        Open audio in new tab
+                      </a>
+                    </div>
+                  </>
+                ) : (
+                  <span className="muted">No recording uploaded</span>
+                )}
+              </dd>
+            </div>
+          )}
           <div><dt>Call Transfered To</dt><dd>{typeof lead.assignedTo === "object" && lead.assignedTo ? lead.assignedTo.name : "Unassigned"}</dd></div>
           <div><dt>Created</dt><dd>{new Date(lead.createdAt).toLocaleString()}</dd></div>
           <div className="span-two"><dt>Notes</dt><dd>{lead.notes || "No notes"}</dd></div>

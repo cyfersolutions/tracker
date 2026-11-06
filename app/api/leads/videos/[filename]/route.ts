@@ -35,13 +35,14 @@ export const GET = withAuth("leads:view", async (_request, context) => {
     }
 
     const body = Readable.toWeb(createReadStream(filePath)) as unknown as BodyInit;
+    const isInline = isInlineLeadVideo(filename);
     return new NextResponse(body, {
       headers: {
-        "Accept-Ranges": "none",
-        "Cache-Control": "private, no-store",
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "private, max-age=3600",
         "Content-Length": String(fileSize),
         "Content-Type": getLeadVideoContentType(filename),
-        "Content-Disposition": `${isInlineLeadVideo(filename) ? "inline" : "attachment"}; filename="${filename}"`,
+        "Content-Disposition": `${isInline ? "inline" : "attachment"}; filename="${filename}"`,
         "X-Content-Type-Options": "nosniff",
       },
     });

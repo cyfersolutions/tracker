@@ -9,11 +9,13 @@ export function MultiSelect({
   value,
   onChange,
   placeholder,
+  className = "",
 }: {
   options: MultiSelectOption[];
   value: string[];
   onChange: (value: string[]) => void;
   placeholder: string;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -25,7 +27,7 @@ export function MultiSelect({
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, []);
-  return <div className="multi-select" ref={ref}>
+  return <div className={`multi-select ${className}`.trim()} ref={ref}>
     <button type="button" className="multi-select-trigger" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
       <span className={selected.length === 0 ? "styled-select-placeholder" : undefined}>{selected.length === 0 ? placeholder : selected.length === 1 ? selected[0].label : `${selected.length} selected`}</span>
       <span className="styled-select-chevron" aria-hidden="true">⌄</span>

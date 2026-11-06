@@ -7,6 +7,13 @@ const VIDEO_URL_PATTERN =
 
 const leadSchema = new Schema(
   {
+    leadType: {
+      type: String,
+      enum: ["Roofing", "Trucking"],
+      default: "Roofing",
+      required: true,
+      index: true,
+    },
     name: { type: String, required: true, trim: true, maxlength: 160 },
     email: {
       type: String,
@@ -25,19 +32,39 @@ const leadSchema = new Schema(
     },
     videoUrl: {
       type: String,
-      required: true,
+      required: false,
+      default: "",
       trim: true,
       maxlength: 2048,
       match: VIDEO_URL_PATTERN,
     },
     address: {
-      street: { type: String, required: true, trim: true, maxlength: 200 },
-      city: { type: String, required: true, trim: true, maxlength: 120 },
+      street: { type: String, default: "", trim: true, maxlength: 200 },
+      city: { type: String, default: "", trim: true, maxlength: 120 },
       state: { type: String, required: true, trim: true, maxlength: 120 },
-      country: { type: String, required: true, trim: true, maxlength: 120 },
-      postalCode: { type: String, required: true, trim: true, maxlength: 24 },
+      country: { type: String, default: "", trim: true, maxlength: 120 },
+      postalCode: { type: String, default: "", trim: true, maxlength: 24 },
     },
-    roofSize: { type: Number, required: true, min: 0 },
+    roofSize: { type: Number, default: 0, min: 0 },
+    mcNumber: { type: String, default: "", trim: true, maxlength: 60 },
+    truckType: { type: String, default: "", trim: true, maxlength: 120 },
+    trucks: { type: Number, default: 0, min: 0 },
+    revenue: { type: Number, default: 0, min: 0 },
+    otr: { type: String, enum: ["Yes", "No"], default: "Yes" },
+    documents: {
+      type: [
+        new Schema(
+          {
+            name: { type: String, required: true, trim: true, maxlength: 255 },
+            url: { type: String, required: true, trim: true },
+            size: { type: Number, default: 0 },
+            uploadedAt: { type: Date, default: Date.now },
+          },
+          { _id: true },
+        ),
+      ],
+      default: [],
+    },
     basePrice: { type: Number, required: true, min: 0, default: 50 },
     finalPrice: { type: Number, required: true, min: 0, default: 50 },
     topUps: {
@@ -89,7 +116,14 @@ if (models.Lead && (
   !(registeredVideoUrlPattern instanceof RegExp) ||
   registeredVideoUrlPattern.source !== VIDEO_URL_PATTERN.source ||
   registeredStatusValues.length !== LEAD_STATUSES.length ||
-  LEAD_STATUSES.some((status) => !registeredStatusValues.includes(status))
+  LEAD_STATUSES.some((status) => !registeredStatusValues.includes(status)) ||
+  !models.Lead.schema.path("leadType") ||
+  !models.Lead.schema.path("mcNumber") ||
+  !models.Lead.schema.path("truckType") ||
+  !models.Lead.schema.path("trucks") ||
+  !models.Lead.schema.path("revenue") ||
+  !models.Lead.schema.path("otr") ||
+  !models.Lead.schema.path("documents")
 )) {
   mongoose.deleteModel("Lead");
 }

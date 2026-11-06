@@ -12,6 +12,7 @@ export function StyledSelect({
   disabled,
   ariaLabel,
   name,
+  className = "",
 }: {
   value: string;
   options: SelectOption[];
@@ -20,6 +21,7 @@ export function StyledSelect({
   disabled?: boolean;
   ariaLabel?: string;
   name?: string;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [localValue, setLocalValue] = useState(value);
@@ -34,7 +36,7 @@ export function StyledSelect({
     return () => document.removeEventListener("mousedown", close);
   }, []);
   return (
-    <div className="styled-select" ref={containerRef}>
+    <div className={`styled-select ${className}`.trim()} ref={containerRef}>
       {name && <input type="hidden" name={name} value={localValue} />}
       <button
         type="button"

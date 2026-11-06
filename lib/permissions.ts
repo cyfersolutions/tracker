@@ -41,3 +41,14 @@ export const LEAD_STATUSES = [
 ] as const;
 
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
+
+export function normalizeLeadStatus(status: unknown): LeadStatus {
+  const s = String(status || "").toUpperCase();
+  if (s === "NEW" || s === "HOT" || s === "QUALIFIED") return "WARM";
+  if (s === "CONTACTED") return "FOLLOWUP";
+  if (s === "CONVERTED" || s === "CLOSED") return "WON";
+  if ((LEAD_STATUSES as readonly string[]).includes(s)) {
+    return s as LeadStatus;
+  }
+  return "WARM";
+}

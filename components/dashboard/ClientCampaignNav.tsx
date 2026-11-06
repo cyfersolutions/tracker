@@ -117,21 +117,26 @@ export function ClientCampaignNav({ showSelector = true }: { showSelector?: bool
   const searchParams = useSearchParams();
   const selectedCampaign = searchParams.get("campaign") ?? "";
 
-  if (!showSelector && !selectedCampaign) return null;
-
   return (
     <div className="client-campaign-nav">
       {showSelector && <CampaignSelector />}
-      {selectedCampaign && (
+      {selectedCampaign ? (
         <div className="client-campaign-links">
           <Link href={`/dashboard?campaign=${encodeURIComponent(selectedCampaign)}`} aria-current={pathname === "/dashboard" ? "page" : undefined}>
             Overview
           </Link>
-          <Link className="client-leads-link" href={`/leads?campaign=${encodeURIComponent(selectedCampaign)}`} aria-current={pathname === "/leads" || (pathname.startsWith("/leads/") && !pathname.startsWith("/leads/board")) ? "page" : undefined}>
+          <Link
+            className="client-leads-link"
+            href={`/leads?campaign=${encodeURIComponent(selectedCampaign)}`}
+            aria-current={pathname.startsWith("/leads") ? "page" : undefined}
+          >
             Leads
           </Link>
-          <Link className="client-leads-link" href={`/leads/board?campaign=${encodeURIComponent(selectedCampaign)}`} aria-current={pathname.startsWith("/leads/board") ? "page" : undefined}>
-            Lead board
+        </div>
+      ) : (
+        <div className="client-campaign-links">
+          <Link href="/dashboard" aria-current={pathname === "/dashboard" ? "page" : undefined}>
+            Overview
           </Link>
         </div>
       )}

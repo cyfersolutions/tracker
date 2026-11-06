@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { leadMoveSchema, leadSchema, leadTopUpSchema } from "@/lib/validations/lead.schema";
+import { campaignSchema } from "@/lib/validations/campaign.schema";
 import { roleSchema } from "@/lib/validations/role.schema";
 import { createUserSchema } from "@/lib/validations/user.schema";
 import { fromSquareFeet, toSquareFeet } from "@/lib/roof-size";
@@ -27,6 +28,81 @@ const validLead = {
   roofSize: 1200,
   assignedTo: "507f1f77bcf86cd799439011",
 };
+
+const validTruckingLead = {
+  leadType: "Trucking",
+  name: "Alex Miller",
+  email: "alex@millerlogistics.com",
+  phone: "+14155552671",
+  mcNumber: "MC-987654",
+  address: { state: "Texas" },
+  otr: "Yes",
+  truckType: "Dry Van",
+  trucks: 5,
+  revenue: 750000,
+  assignedTo: "507f1f77bcf86cd799439011",
+};
+
+test("campaign schema validates Roofing and Trucking types", () => {
+  const baseCampaign = {
+    name: "Q4 Outreach",
+    startDate: new Date("2026-10-01"),
+    endDate: new Date("2026-12-31"),
+  };
+  const defaultType = campaignSchema.parse(baseCampaign);
+  assert.equal(defaultType.type, "Roofing");
+
+  const roofing = campaignSchema.safeParse({ ...baseCampaign, type: "Roofing" });
+  assert.equal(roofing.success, true);
+
+  const trucking = campaignSchema.safeParse({ ...baseCampaign, type: "Trucking" });
+  assert.equal(trucking.success, true);
+  if (trucking.success) assert.equal(trucking.data.type, "Trucking");
+
+  const invalidType = campaignSchema.safeParse({ ...baseCampaign, type: "Solar" });
+  assert.equal(invalidType.success, false);
+});
+
+test("trucking lead input accepts trucking variables and enforces required MC NO and State", () => {
+  const parsed = leadSchema.parse(validTruckingLead);
+  assert.equal(parsed.leadType, "Trucking");
+  assert.equal(parsed.name, "Alex Miller");
+  assert.equal(parsed.mcNumber, "MC-987654");
+  assert.equal(parsed.address.state, "Texas");
+  assert.equal(parsed.otr, "Yes");
+  assert.equal(parsed.truckType, "Dry Van");
+  assert.equal(parsed.trucks, 5);
+  assert.equal(parsed.revenue, 750000);
+  assert.equal(parsed.email, "alex@millerlogistics.com");
+  assert.equal(parsed.phone, "+14155552671");
+  assert.equal(parsed.roofSize, 0);
+  assert.deepEqual(parsed.documents, []);
+
+  // Accepts documents
+  assert.equal(
+    leadSchema.safeParse({
+      ...validTruckingLead,
+      documents: [{ name: "insurance.pdf", url: "/api/leads/videos/abc.pdf", size: 2048 }],
+    }).success,
+    true,
+  );
+
+  // MC NO is required for Trucking
+  assert.equal(leadSchema.safeParse({ ...validTruckingLead, mcNumber: "" }).success, false);
+  assert.equal(leadSchema.safeParse({ ...validTruckingLead, mcNumber: "   " }).success, false);
+
+  // State is required for Trucking
+  assert.equal(leadSchema.safeParse({ ...validTruckingLead, address: { state: "" } }).success, false);
+
+  // Trucker Name is required
+  assert.equal(leadSchema.safeParse({ ...validTruckingLead, name: " " }).success, false);
+
+  // Phone is required
+  assert.equal(leadSchema.safeParse({ ...validTruckingLead, phone: "invalid-phone" }).success, false);
+
+  // Does not require videoUrl or street/city/postalCode for Trucking
+  assert.equal(leadSchema.safeParse({ ...validTruckingLead, videoUrl: "" }).success, true);
+});
 
 test("lead input normalizes optional email and status", () => {
   const parsed = leadSchema.parse(validLead);
